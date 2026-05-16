@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { SolarScene } from './scene/SolarScene'
+import { SolarScene } from './experience'
+import { WarpFadeOverlay } from './transitions/warp/WarpFadeOverlay'
 import { PlanetInfoPanel } from './ui/PlanetInfoPanel'
 import { Navigator } from './ui/Navigator'
 import { useSolarStore } from './store/useSolarStore'
@@ -54,6 +55,7 @@ function App() {
   return (
     <div className="relative h-full w-full overflow-hidden bg-cosmos-deep">
       <SolarScene />
+      <WarpFadeOverlay />
 
       <header className="pointer-events-none absolute left-0 top-0 z-10 flex w-full items-start justify-between px-8 py-6">
         <Navigator />

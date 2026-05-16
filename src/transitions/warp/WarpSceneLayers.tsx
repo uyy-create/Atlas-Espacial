@@ -1,17 +1,17 @@
 import { Suspense, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { PLANETS } from '../data/planets'
-import { useSolarStore, type ViewId } from '../store/useSolarStore'
+import { PLANETS } from '../../data/planets'
+import { useSolarStore, type ViewId } from '../../store/useSolarStore'
+import { BlackHoleScene } from '../../scenes/black-hole/BlackHoleScene'
 import {
   BLACK_HOLE_SYSTEM_GALAXY_MARKER,
   SOLAR_SYSTEM_GALAXY_MARKER,
-} from './galaxyMarkers'
-import { BlackHoleScene } from './BlackHoleScene'
-import { GalaxyScene } from './GalaxyScene'
-import { Orbit } from './Orbit'
-import { Planet } from './Planet'
-import { Sun } from './Sun'
+} from '../../scenes/galaxy/galaxyMarkers'
+import { GalaxyScene } from '../../scenes/galaxy/GalaxyScene'
+import { Orbit } from '../../scenes/solar/Orbit'
+import { Planet } from '../../scenes/solar/Planet'
+import { Sun } from '../../scenes/solar/Sun'
 import {
   computeWarpLayerMounts,
   computeWarpLayerScales,

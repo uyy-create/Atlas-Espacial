@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
 import * as THREE from 'three'
-import { enhanceTextureQuality } from './textureQuality'
+import { enhanceTextureQuality } from '../../components/textureQuality'
 
 const SUN_RADIUS = 3.6
 

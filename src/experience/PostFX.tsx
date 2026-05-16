@@ -1,4 +1,4 @@
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { EffectComposer } from '@react-three/postprocessing'
 import {
   BloomEffect,
@@ -7,13 +7,10 @@ import {
   BlendFunction,
   KernelSize,
 } from 'postprocessing'
-import { Suspense, useEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { useSolarStore } from '../store/useSolarStore'
-import { CameraRig } from './CameraRig'
-import { Starfield } from './Starfield'
-import { warpIntensityCurve, WarpStreaks } from './WarpStreaks'
-import { WarpSceneLayers } from './WarpSceneLayers'
+import { computeWarpStreakIntensity } from '../transitions/warp/blackHoleTransition'
 
 const BLOOM_BASE_INTENSITY = 0.55
 const BLOOM_PEAK_INTENSITY = 1.25
@@ -25,7 +22,7 @@ const GALAXY_BLOOM_INTENSITY = 0.5
 const BLACK_HOLE_BLOOM_INTENSITY = 0.38
 const BLACK_HOLE_BLOOM_THRESHOLD = 0.82
 
-function PostFX() {
+export function PostFX() {
   const { bloom, chromaticAberration, vignette } = useMemo(() => {
     const bloomEffect = new BloomEffect({
       intensity: BLOOM_BASE_INTENSITY,
@@ -64,9 +61,14 @@ function PostFX() {
   }, [bloom, chromaticAberration, vignette])
 
   useFrame(() => {
-    const { mode, view, warpProgress } = useSolarStore.getState()
-    const isWarping = mode === 'warping'
-    const intensity = isWarping ? warpIntensityCurve(warpProgress) : 0
+    const { mode, view, warpTargetView, warpProgress } =
+      useSolarStore.getState()
+    const intensity = computeWarpStreakIntensity(
+      mode,
+      view,
+      warpTargetView,
+      warpProgress,
+    )
 
     const baseBloom =
       view === 'galaxy'
@@ -106,50 +108,5 @@ function PostFX() {
       <primitive object={chromaticAberration} />
       <primitive object={vignette} />
     </EffectComposer>
-  )
-}
-
-export function SolarScene() {
-  const view = useSolarStore((s) => s.view)
-  const mode = useSolarStore((s) => s.mode)
-  const unfocus = useSolarStore((s) => s.unfocus)
-
-  const fogEnabled = useSolarStore((s) => {
-    if (s.view === 'galaxy' && s.mode === 'overview') return false
-    if (
-      s.mode === 'warping' &&
-      s.warpTargetView === 'galaxy' &&
-      s.warpProgress > 0.46
-    ) {
-      return false
-    }
-    return true
-  })
-
-  const handlePointerMissed = () => {
-    if (mode === 'warping') return
-    if (view !== 'solar') return
-    unfocus()
-  }
-
-  return (
-    <Canvas
-      dpr={[1, 2]}
-      gl={{ antialias: true, powerPreference: 'high-performance' }}
-      camera={{ position: [0, 32, 78], fov: 45, near: 0.1, far: 1200 }}
-      onPointerMissed={handlePointerMissed}
-    >
-      <color attach="background" args={['#02030a']} />
-      {fogEnabled && <fog attach="fog" args={['#02030a', 140, 360]} />}
-
-      <Suspense fallback={null}>
-        {view !== 'blackHole' && <Starfield />}
-        <WarpSceneLayers />
-      </Suspense>
-
-      <WarpStreaks />
-      <CameraRig />
-      <PostFX />
-    </Canvas>
   )
 }

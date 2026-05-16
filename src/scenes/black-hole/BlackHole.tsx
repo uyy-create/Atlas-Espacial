@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useSolarStore } from '../store/useSolarStore'
+import { useSolarStore } from '../../store/useSolarStore'
 import {
   BLACK_HOLE_DEFAULTS,
   BLACK_HOLE_RAYMARCH_FRAG,
@@ -11,7 +11,7 @@ import {
 import {
   computeBlackHolePresentScale,
   shouldUseShadertoyCamera,
-} from './blackHoleTransition'
+} from '../../transitions/warp/blackHoleTransition'
 
 /**
  * Full-screen raymarched black hole (tsBXW3).

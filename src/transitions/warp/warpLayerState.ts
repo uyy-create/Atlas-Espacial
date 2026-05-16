@@ -1,4 +1,4 @@
-import type { CameraMode, ViewId } from '../store/useSolarStore'
+import type { CameraMode, ViewId } from '../../store/useSolarStore'
 import {
   warpGalaxyScaleToGalaxy,
   warpGalaxyScaleToSolar,
@@ -38,11 +38,14 @@ export function computeWarpLayerMounts(
     } else if (view === 'blackHole') {
       mountSolar = false
       mountBlackHole = true
+    } else {
+      mountSolar = false
+      mountBlackHole = false
     }
   } else if (warping && warpTargetView === 'solar') {
     mountSolar = true
     mountGalaxy = true
-    mountBlackHole = false
+    mountBlackHole = view === 'blackHole'
   } else if (warping && warpTargetView === 'blackHole') {
     mountBlackHole = true
     mountGalaxy = true
@@ -79,12 +82,17 @@ export function computeWarpLayerScales(
     if (view === 'solar') {
       solarScale = warpSolarSystemScaleToGalaxy(warpProgress)
     } else if (view === 'blackHole') {
-      blackHoleScale = warpSolarSystemScaleToGalaxy(warpProgress)
+      const shrink = Math.max(0, (warpProgress - 0.38) / 0.62)
+      blackHoleScale = 1 - shrink * 0.96
     }
     galaxyScale = warpGalaxyScaleToGalaxy(warpProgress)
   } else if (warping && warpTargetView === 'solar') {
     solarScale = warpSolarSystemScaleToSolar(warpProgress)
     galaxyScale = warpGalaxyScaleToSolar(warpProgress)
+    if (view === 'blackHole') {
+      const shrink = Math.max(0, (warpProgress - 0.38) / 0.62)
+      blackHoleScale = 1 - shrink * 0.96
+    }
   } else if (warping && warpTargetView === 'blackHole') {
     blackHoleScale = warpSolarSystemScaleToSolar(warpProgress)
     galaxyScale = warpGalaxyScaleToSolar(warpProgress)

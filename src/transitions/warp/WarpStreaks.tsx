@@ -1,11 +1,15 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useSolarStore, type ViewId } from '../store/useSolarStore'
+import { useSolarStore, type ViewId } from '../../store/useSolarStore'
 import {
   BLACK_HOLE_SYSTEM_GALAXY_MARKER,
   SOLAR_SYSTEM_GALAXY_MARKER,
-} from './galaxyMarkers'
+} from '../../scenes/galaxy/galaxyMarkers'
+import { computeWarpStreakIntensity } from './blackHoleTransition'
+import { warpIntensityCurve } from './warpScaleCurves'
+
+export { warpIntensityCurve }
 
 function warpStreakAnchor(
   warpTargetView: ViewId | null,
@@ -24,12 +28,6 @@ function warpStreakAnchor(
 const COUNT = 900
 const TUBE_RADIUS = 38
 const DEPTH = 220
-
-export function warpIntensityCurve(progress: number): number {
-  if (progress <= 0) return 0
-  if (progress >= 1) return 0
-  return Math.pow(Math.sin(progress * Math.PI), 1.35)
-}
 
 export function WarpStreaks() {
   const groupRef = useRef<THREE.Group>(null)
@@ -67,9 +65,15 @@ export function WarpStreaks() {
   }, [])
 
   useFrame((_, delta) => {
-    const { mode, warpProgress } = useSolarStore.getState()
+    const { mode, view, warpTargetView, warpProgress } =
+      useSolarStore.getState()
     const isWarping = mode === 'warping'
-    const intensity = isWarping ? warpIntensityCurve(warpProgress) : 0
+    const intensity = computeWarpStreakIntensity(
+      mode,
+      view,
+      warpTargetView,
+      warpProgress,
+    )
 
     if (groupRef.current) {
       groupRef.current.visible = isWarping
@@ -77,7 +81,6 @@ export function WarpStreaks() {
         groupRef.current.position.copy(camera.position)
         groupRef.current.quaternion.copy(camera.quaternion)
 
-        const { warpTargetView, view } = useSolarStore.getState()
         tmpMarkerCam.current
           .copy(warpStreakAnchor(warpTargetView, view))
           .applyMatrix4(camera.matrixWorldInverse)

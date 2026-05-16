@@ -7,6 +7,13 @@ export function smoothstep(edge0: number, edge1: number, x: number): number {
   return t * t * (3 - 2 * t)
 }
 
+/** Bell curve for warp streaks / post FX (peaks mid-warp on a 0..1 timeline). */
+export function warpIntensityCurve(progress: number): number {
+  if (progress <= 0) return 0
+  if (progress >= 1) return 0
+  return Math.pow(Math.sin(progress * Math.PI), 1.35)
+}
+
 /** Galaxy scale when arriving from solar: starts large, settles to 1. */
 const GALAXY_ARRIVE_BIG = 2.45
 

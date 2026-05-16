@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useSolarStore } from '../store/useSolarStore'
+import { useSolarStore } from '../../store/useSolarStore'
 import {
   BLACK_HOLE_MARKER_POSITION_TUPLE,
   SOLAR_MARKER_POSITION_TUPLE,
@@ -10,7 +10,7 @@ import { MilkyWay } from './MilkyWay'
 import {
   warpGalaxyOpacityToGalaxy,
   warpGalaxyOpacityToSolar,
-} from './warpScaleCurves'
+} from '../../transitions/warp/warpScaleCurves'
 
 function SolarSystemMarker() {
   const navigateToView = useSolarStore((s) => s.navigateToView)

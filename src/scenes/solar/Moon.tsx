@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
 import * as THREE from 'three'
-import type { MoonDef } from '../data/planets'
-import { enhanceTextureQuality } from './textureQuality'
+import type { MoonDef } from '../../data/planets'
+import { enhanceTextureQuality } from '../../components/textureQuality'
 
 interface MoonProps {
   def: MoonDef

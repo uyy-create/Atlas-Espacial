@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { useSolarStore } from '../store/useSolarStore'
+import { useSolarStore } from '../../store/useSolarStore'
 
 interface OrbitProps {
   radius: number

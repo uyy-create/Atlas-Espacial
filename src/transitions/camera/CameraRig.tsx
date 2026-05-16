@@ -2,12 +2,12 @@ import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { gsap } from 'gsap'
-import { getPlanetById } from '../data/planets'
+import { getPlanetById } from '../../data/planets'
 import {
   useSolarStore,
   type CameraMode,
   type ViewId,
-} from '../store/useSolarStore'
+} from '../../store/useSolarStore'
 
 const SOLAR_DEFAULT_POSITION = new THREE.Vector3(0, 32, 78)
 const SOLAR_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0)

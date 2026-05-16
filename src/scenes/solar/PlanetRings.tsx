@@ -2,8 +2,8 @@ import { useEffect, useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
 import * as THREE from 'three'
-import type { RingDef } from '../data/planets'
-import { enhanceTextureQuality } from './textureQuality'
+import type { RingDef } from '../../data/planets'
+import { enhanceTextureQuality } from '../../components/textureQuality'
 
 interface PlanetRingsProps {
   rings: RingDef

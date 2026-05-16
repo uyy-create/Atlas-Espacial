@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Html, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
-import type { PlanetDef } from '../data/planets'
-import { useSolarStore } from '../store/useSolarStore'
+import type { PlanetDef } from '../../data/planets'
+import { useSolarStore } from '../../store/useSolarStore'
+import { enhanceTextureQuality } from '../../components/textureQuality'
 import { PlanetRings } from './PlanetRings'
 import { Moon } from './Moon'
-import { enhanceTextureQuality } from './textureQuality'
 
 interface PlanetProps {
   def: PlanetDef
