@@ -2,7 +2,7 @@ import { useMemo, useRef, type MutableRefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-const PARTICLE_COUNT = 92000
+const PARTICLE_COUNT = 52000
 const GALAXY_RADIUS = 80
 const ARMS = 4
 const DISC_THICKNESS = 0.3
@@ -11,7 +11,7 @@ const BULGE_RATIO = 0.1
  * Fraction of disc particles that are NOT bound to a spiral arm — random in
  * the disc. Gives the cloudy / chaotic feel of a real galaxy.
  */
-const CLOUD_RATIO = 0.32
+const CLOUD_RATIO = 0.42
 /**
  * Logarithmic spiral coefficient. Higher = arms wind tighter.
  * spinAngle = log(1 + radius * SPIRAL_GROWTH) * SPIRAL_TIGHTNESS
@@ -57,7 +57,7 @@ function makeParticleTexture(): THREE.CanvasTexture {
 }
 
 function makeHaloTexture(): THREE.CanvasTexture {
-  const size = 512
+  const size = 128
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = size
