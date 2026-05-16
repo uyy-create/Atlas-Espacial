@@ -9,7 +9,7 @@ export type CameraMode =
   | 'returning'
   | 'warping'
 
-export type ViewId = 'solar' | 'galaxy'
+export type ViewId = 'solar' | 'galaxy' | 'blackHole'
 
 export interface ViewOption {
   id: ViewId
@@ -27,6 +27,11 @@ export const VIEWS: ViewOption[] = [
     id: 'galaxy',
     name: 'Vía Láctea',
     subtitle: 'Vista desde el exterior',
+  },
+  {
+    id: 'blackHole',
+    name: 'Agujero negro',
+    subtitle: 'Disco de acreción extremo',
   },
 ]
 

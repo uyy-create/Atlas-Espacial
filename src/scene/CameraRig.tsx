@@ -13,6 +13,12 @@ const SOLAR_DEFAULT_POSITION = new THREE.Vector3(0, 32, 78)
 const SOLAR_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0)
 const GALAXY_DEFAULT_POSITION = new THREE.Vector3(0, 62, 178)
 const GALAXY_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0)
+/** Casi en el ecuador (+Z), Y bajo: el disco (plano xz, y=0) se lee como banda horizontal. */
+const BLACK_HOLE_DEFAULT_POSITION = new THREE.Vector3(0, 11, 102)
+const BLACK_HOLE_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0)
+/** Telephoto framing: flatter projection, closer to axonometric read than wide FOV. */
+const BLACK_HOLE_FOV = 22
+const DEFAULT_SCENE_FOV = 45
 
 const DEFAULT_FOCUS_DISTANCE = 4.5
 /** How high above the orbital plane the camera sits when focused. */
@@ -33,11 +39,17 @@ const easeInOutQuint = (t: number) =>
   t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2
 const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n)
 
-const getViewDefaultPosition = (view: ViewId): THREE.Vector3 =>
-  view === 'galaxy' ? GALAXY_DEFAULT_POSITION : SOLAR_DEFAULT_POSITION
+const getViewDefaultPosition = (view: ViewId): THREE.Vector3 => {
+  if (view === 'galaxy') return GALAXY_DEFAULT_POSITION
+  if (view === 'blackHole') return BLACK_HOLE_DEFAULT_POSITION
+  return SOLAR_DEFAULT_POSITION
+}
 
-const getViewDefaultTarget = (view: ViewId): THREE.Vector3 =>
-  view === 'galaxy' ? GALAXY_DEFAULT_TARGET : SOLAR_DEFAULT_TARGET
+const getViewDefaultTarget = (view: ViewId): THREE.Vector3 => {
+  if (view === 'galaxy') return GALAXY_DEFAULT_TARGET
+  if (view === 'blackHole') return BLACK_HOLE_DEFAULT_TARGET
+  return SOLAR_DEFAULT_TARGET
+}
 
 const computeFocusDistance = (radius: number, override?: number): number => {
   if (override !== undefined) return override
@@ -45,7 +57,7 @@ const computeFocusDistance = (radius: number, override?: number): number => {
 }
 
 export function CameraRig() {
-  const { camera } = useThree()
+  const { camera, clock } = useThree()
 
   const lookAtRef = useRef(new THREE.Vector3().copy(SOLAR_DEFAULT_TARGET))
 
@@ -72,7 +84,7 @@ export function CameraRig() {
     camera.lookAt(SOLAR_DEFAULT_TARGET)
   }, [camera])
 
-  useFrame(({ clock }) => {
+  useFrame((_, delta) => {
     const {
       mode,
       view,
@@ -85,6 +97,15 @@ export function CameraRig() {
       commitWarpView,
       completeWarp,
     } = useSolarStore.getState()
+
+    const persp = camera as THREE.PerspectiveCamera
+    const wantBlackHoleFov =
+      view === 'blackHole' ||
+      (mode === 'warping' && warpTargetView === 'blackHole')
+    const targetFov = wantBlackHoleFov ? BLACK_HOLE_FOV : DEFAULT_SCENE_FOV
+    const fovK = 1 - Math.exp(-5.2 * delta)
+    persp.fov = THREE.MathUtils.lerp(persp.fov, targetFov, fovK)
+    persp.updateProjectionMatrix()
 
     const modeChanged = mode !== previousMode.current
     const focusedChanged = focusedId !== previousFocusedId.current

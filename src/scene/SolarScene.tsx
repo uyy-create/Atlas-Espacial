@@ -21,6 +21,8 @@ const BLOOM_BASE_THRESHOLD = 0.85
 const BLOOM_PEAK_THRESHOLD = 0.6
 const CA_PEAK_OFFSET = 0.0028
 const GALAXY_BLOOM_INTENSITY = 0.5
+const BLACK_HOLE_BLOOM_INTENSITY = 0.92
+const BLACK_HOLE_BLOOM_THRESHOLD = 0.58
 
 function PostFX() {
   const { bloom, chromaticAberration, vignette } = useMemo(() => {
@@ -66,7 +68,11 @@ function PostFX() {
     const intensity = isWarping ? warpIntensityCurve(warpProgress) : 0
 
     const baseBloom =
-      view === 'galaxy' ? GALAXY_BLOOM_INTENSITY : BLOOM_BASE_INTENSITY
+      view === 'galaxy'
+        ? GALAXY_BLOOM_INTENSITY
+        : view === 'blackHole'
+          ? BLACK_HOLE_BLOOM_INTENSITY
+          : BLOOM_BASE_INTENSITY
     bloom.intensity = baseBloom + (BLOOM_PEAK_INTENSITY - baseBloom) * intensity
 
     const lumPass = (
@@ -77,13 +83,20 @@ function PostFX() {
       }
     ).luminancePass
     if (lumPass?.luminanceMaterial) {
+      const baseThreshold =
+        view === 'blackHole' ? BLACK_HOLE_BLOOM_THRESHOLD : BLOOM_BASE_THRESHOLD
       lumPass.luminanceMaterial.threshold =
-        BLOOM_BASE_THRESHOLD -
-        (BLOOM_BASE_THRESHOLD - BLOOM_PEAK_THRESHOLD) * intensity
+        baseThreshold - (baseThreshold - BLOOM_PEAK_THRESHOLD) * intensity
     }
 
-    const offset = intensity * CA_PEAK_OFFSET
-    chromaticAberration.offset.set(offset, offset)
+    const bh = view === 'blackHole'
+    const caBh = bh ? 0.00055 : 0
+    chromaticAberration.offset.set(
+      caBh + intensity * CA_PEAK_OFFSET,
+      caBh + intensity * CA_PEAK_OFFSET,
+    )
+    vignette.darkness = bh ? 0.56 : 0.45
+    vignette.offset = bh ? 0.44 : 0.35
   })
 
   return (

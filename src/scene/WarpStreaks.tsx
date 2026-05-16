@@ -1,8 +1,25 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useSolarStore } from '../store/useSolarStore'
-import { SOLAR_SYSTEM_GALAXY_MARKER } from './galaxyMarkers'
+import { useSolarStore, type ViewId } from '../store/useSolarStore'
+import {
+  BLACK_HOLE_SYSTEM_GALAXY_MARKER,
+  SOLAR_SYSTEM_GALAXY_MARKER,
+} from './galaxyMarkers'
+
+function warpStreakAnchor(
+  warpTargetView: ViewId | null,
+  view: ViewId,
+): THREE.Vector3 {
+  if (warpTargetView === 'galaxy') {
+    return view === 'blackHole'
+      ? BLACK_HOLE_SYSTEM_GALAXY_MARKER
+      : SOLAR_SYSTEM_GALAXY_MARKER
+  }
+  if (warpTargetView === 'solar') return SOLAR_SYSTEM_GALAXY_MARKER
+  if (warpTargetView === 'blackHole') return BLACK_HOLE_SYSTEM_GALAXY_MARKER
+  return SOLAR_SYSTEM_GALAXY_MARKER
+}
 
 const COUNT = 900
 const TUBE_RADIUS = 38
@@ -60,9 +77,9 @@ export function WarpStreaks() {
         groupRef.current.position.copy(camera.position)
         groupRef.current.quaternion.copy(camera.quaternion)
 
-        const { warpTargetView } = useSolarStore.getState()
+        const { warpTargetView, view } = useSolarStore.getState()
         tmpMarkerCam.current
-          .copy(SOLAR_SYSTEM_GALAXY_MARKER)
+          .copy(warpStreakAnchor(warpTargetView, view))
           .applyMatrix4(camera.matrixWorldInverse)
         const parallax = warpTargetView === 'galaxy' ? 0.26 : 0.34
         tmpRight.current.set(1, 0, 0).applyQuaternion(camera.quaternion).normalize()

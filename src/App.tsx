@@ -15,8 +15,13 @@ function App() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (useSolarStore.getState().view === 'galaxy') {
+        const v = useSolarStore.getState().view
+        if (v === 'galaxy') {
           navigateToView('solar')
+          return
+        }
+        if (v === 'blackHole') {
+          navigateToView('galaxy')
           return
         }
         unfocus()
@@ -41,8 +46,10 @@ function App() {
     view === 'solar' && mode === 'overview'
       ? 'Pulsa sobre un planeta para explorarlo'
       : view === 'galaxy' && mode !== 'warping'
-        ? 'Pulsa “Sistema Solar” para volver a tu vecindario'
-        : null
+        ? 'Pulsa un punto brillante: Sistema Solar o Agujero negro'
+        : view === 'blackHole' && mode === 'overview'
+          ? 'Escape: volver a la galaxia'
+          : null
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-cosmos-deep">

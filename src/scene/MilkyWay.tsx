@@ -2,10 +2,10 @@ import { useMemo, useRef, type MutableRefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-const PARTICLE_COUNT = 52000
-const GALAXY_RADIUS = 90
+const PARTICLE_COUNT = 92000
+const GALAXY_RADIUS = 80
 const ARMS = 4
-const DISC_THICKNESS = 0.1
+const DISC_THICKNESS = 0.3
 const BULGE_RATIO = 0.1
 /**
  * Fraction of disc particles that are NOT bound to a spiral arm — random in
@@ -29,7 +29,7 @@ const COLOR_OUTER = new THREE.Color('#b3c0f2')
 const COLOR_RIM = new THREE.Color('#7888dc')
 
 function makeParticleTexture(): THREE.CanvasTexture {
-  const size = 128
+  const size = 164
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = size
