@@ -11,7 +11,7 @@ const BULGE_RATIO = 0.1
  * Fraction of disc particles that are NOT bound to a spiral arm — random in
  * the disc. Gives the cloudy / chaotic feel of a real galaxy.
  */
-const CLOUD_RATIO = 0.42
+const CLOUD_RATIO = 0.32
 /**
  * Logarithmic spiral coefficient. Higher = arms wind tighter.
  * spinAngle = log(1 + radius * SPIRAL_GROWTH) * SPIRAL_TIGHTNESS
@@ -21,7 +21,7 @@ const SPIRAL_TIGHTNESS = 2.7
 /** Angular half-width (radians) of an arm — bigger = thicker arm. */
 const ARM_ANGULAR_SCATTER = 0.55
 const ARM_RADIAL_SCATTER = 0.55
-const CLOUD_SCATTER = 0.7
+const CLOUD_SCATTER = 0.4
 
 const COLOR_CORE = new THREE.Color('#fff0f7')
 const COLOR_MID = new THREE.Color('#e7baea')

@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { Suspense, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PLANETS } from '../data/planets'
@@ -13,11 +13,9 @@ import { Orbit } from './Orbit'
 import { Planet } from './Planet'
 import { Sun } from './Sun'
 import {
-  warpGalaxyScaleToGalaxy,
-  warpGalaxyScaleToSolar,
-  warpSolarSystemScaleToGalaxy,
-  warpSolarSystemScaleToSolar,
-} from './warpScaleCurves'
+  computeWarpLayerMounts,
+  computeWarpLayerScales,
+} from './warpLayerState'
 
 function SolarBodies() {
   return (
@@ -54,6 +52,15 @@ function resolveGalaxyPivot(
 }
 
 export function WarpSceneLayers() {
+  const view = useSolarStore((s) => s.view)
+  const mode = useSolarStore((s) => s.mode)
+  const warpTargetView = useSolarStore((s) => s.warpTargetView)
+  const { mountSolar, mountBlackHole, mountGalaxy } = computeWarpLayerMounts(
+    view,
+    mode,
+    warpTargetView,
+  )
+
   const solarWrapRef = useRef<THREE.Group>(null)
   const blackHoleWrapRef = useRef<THREE.Group>(null)
   const galaxyScaleRef = useRef<THREE.Group>(null)
@@ -62,15 +69,26 @@ export function WarpSceneLayers() {
   const pivotScratch = useRef(new THREE.Vector3())
 
   useFrame(() => {
-    const { mode, view, warpTargetView, warpProgress } = useSolarStore.getState()
-    const warping = mode === 'warping'
+    const state = useSolarStore.getState()
+    const { mountSolar: showSolar, mountBlackHole: showBlackHole, mountGalaxy: showGalaxy } =
+      computeWarpLayerMounts(state.view, state.mode, state.warpTargetView)
+    const { solarScale, blackHoleScale, galaxyScale } = computeWarpLayerScales(
+      state.view,
+      state.mode,
+      state.warpTargetView,
+      state.warpProgress,
+    )
 
-    const pivot = resolveGalaxyPivot(mode, view, warpTargetView)
+    const pivot = resolveGalaxyPivot(
+      state.mode,
+      state.view,
+      state.warpTargetView,
+    )
     pivotScratch.current.copy(pivot)
-    if (galaxyPivotOuterRef.current) {
+    if (showGalaxy && galaxyPivotOuterRef.current) {
       galaxyPivotOuterRef.current.position.copy(pivotScratch.current)
     }
-    if (galaxyInnerNegRef.current) {
+    if (showGalaxy && galaxyInnerNegRef.current) {
       galaxyInnerNegRef.current.position.set(
         -pivotScratch.current.x,
         -pivotScratch.current.y,
@@ -78,84 +96,46 @@ export function WarpSceneLayers() {
       )
     }
 
-    let solarScale = 1
-    let blackHoleScale = 1
-    let galaxyScale = 1
-    let showSolar = view === 'solar'
-    let showBlackHole = view === 'blackHole'
-    let showGalaxy = view === 'galaxy'
-
-    if (warping && warpTargetView === 'galaxy') {
-      showGalaxy = true
-      if (view === 'solar') {
-        showSolar = true
-        showBlackHole = false
-        solarScale = warpSolarSystemScaleToGalaxy(warpProgress)
-      } else if (view === 'blackHole') {
-        showSolar = false
-        showBlackHole = true
-        blackHoleScale = warpSolarSystemScaleToGalaxy(warpProgress)
-      }
-      galaxyScale = warpGalaxyScaleToGalaxy(warpProgress)
-    } else if (warping && warpTargetView === 'solar') {
-      showSolar = true
-      showGalaxy = true
-      showBlackHole = false
-      solarScale = warpSolarSystemScaleToSolar(warpProgress)
-      galaxyScale = warpGalaxyScaleToSolar(warpProgress)
-    } else if (warping && warpTargetView === 'blackHole') {
-      showBlackHole = true
-      showGalaxy = true
-      showSolar = false
-      blackHoleScale = warpSolarSystemScaleToSolar(warpProgress)
-      galaxyScale = warpGalaxyScaleToSolar(warpProgress)
-    } else if (!warping) {
-      if (view === 'solar') {
-        showGalaxy = false
-        showBlackHole = false
-        solarScale = 1
-      } else if (view === 'blackHole') {
-        showGalaxy = false
-        showSolar = false
-        blackHoleScale = 1
-      } else {
-        showSolar = false
-        showBlackHole = false
-        galaxyScale = 1
-      }
-    }
-
-    if (solarWrapRef.current) {
-      solarWrapRef.current.visible = showSolar
+    if (showSolar && solarWrapRef.current) {
       solarWrapRef.current.scale.setScalar(solarScale)
     }
-    if (blackHoleWrapRef.current) {
-      blackHoleWrapRef.current.visible = showBlackHole
+    if (showBlackHole && blackHoleWrapRef.current) {
       blackHoleWrapRef.current.scale.setScalar(blackHoleScale)
     }
-    if (galaxyScaleRef.current) {
-      galaxyScaleRef.current.visible = showGalaxy
+    if (showGalaxy && galaxyScaleRef.current) {
       galaxyScaleRef.current.scale.setScalar(galaxyScale)
     }
   })
 
   return (
     <>
-      <group ref={solarWrapRef}>
-        <SolarBodies />
-      </group>
+      {mountSolar && (
+        <group ref={solarWrapRef}>
+          <Suspense fallback={null}>
+            <SolarBodies />
+          </Suspense>
+        </group>
+      )}
 
-      <group ref={blackHoleWrapRef}>
-        <BlackHoleScene />
-      </group>
+      {mountBlackHole && (
+        <group ref={blackHoleWrapRef}>
+          <Suspense fallback={null}>
+            <BlackHoleScene />
+          </Suspense>
+        </group>
+      )}
 
-      <group ref={galaxyPivotOuterRef}>
-        <group ref={galaxyScaleRef}>
-          <group ref={galaxyInnerNegRef}>
-            <GalaxyScene />
+      {mountGalaxy && (
+        <group ref={galaxyPivotOuterRef}>
+          <group ref={galaxyScaleRef}>
+            <group ref={galaxyInnerNegRef}>
+              <Suspense fallback={null}>
+                <GalaxyScene />
+              </Suspense>
+            </group>
           </group>
         </group>
-      </group>
+      )}
     </>
   )
 }

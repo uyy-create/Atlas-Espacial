@@ -64,10 +64,14 @@ export function Planet({ def }: PlanetProps) {
 
   const [hovered, setHovered] = useState(false)
 
+  const view = useSolarStore((s) => s.view)
+  const mode = useSolarStore((s) => s.mode)
   const focusedId = useSolarStore((s) => s.focusedId)
   const focus = useSolarStore((s) => s.focus)
   const registerPlanetPosition = useSolarStore((s) => s.registerPlanetPosition)
   const setHoveredId = useSolarStore((s) => s.setHovered)
+
+  const canInteract = view === 'solar' && mode !== 'warping'
 
   const isFocused = focusedId === def.id
   const isOtherFocused = focusedId !== null && !isFocused
@@ -110,20 +114,25 @@ export function Planet({ def }: PlanetProps) {
   })
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
+    if (!canInteract) return
     e.stopPropagation()
     focus(def.id)
   }
 
   const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
+    if (!canInteract) return
     e.stopPropagation()
     setHovered(true)
     setHoveredId(def.id)
   }
 
   const handlePointerOut = () => {
+    if (!canInteract) return
     setHovered(false)
     setHoveredId(null)
   }
+
+  const skipRaycast = () => null
 
   return (
     <group ref={orbitRef}>
@@ -134,6 +143,7 @@ export function Planet({ def }: PlanetProps) {
         <group ref={spinRef}>
           <mesh
             ref={meshRef}
+            raycast={canInteract ? undefined : skipRaycast}
             onClick={handleClick}
             onPointerOver={handlePointerOver}
             onPointerOut={handlePointerOut}

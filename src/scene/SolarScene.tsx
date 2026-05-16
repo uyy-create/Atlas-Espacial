@@ -142,7 +142,7 @@ export function SolarScene() {
       {fogEnabled && <fog attach="fog" args={['#02030a', 140, 360]} />}
 
       <Suspense fallback={null}>
-        <Starfield />
+        {view !== 'blackHole' && <Starfield />}
         <WarpSceneLayers />
       </Suspense>
 
