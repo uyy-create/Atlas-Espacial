@@ -13,11 +13,13 @@ const SOLAR_DEFAULT_POSITION = new THREE.Vector3(0, 32, 78)
 const SOLAR_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0)
 const GALAXY_DEFAULT_POSITION = new THREE.Vector3(0, 62, 178)
 const GALAXY_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0)
-/** Casi en el ecuador (+Z), Y bajo: el disco (plano xz, y=0) se lee como banda horizontal. */
-const BLACK_HOLE_DEFAULT_POSITION = new THREE.Vector3(0, 11, 102)
+/**
+ * Warp endpoint only — the settled BH view uses an internal Shadertoy camera
+ * in the raymarch shader (no orbit / no Three.js framing).
+ */
+const BLACK_HOLE_DEFAULT_POSITION = new THREE.Vector3(0, 32, 78)
 const BLACK_HOLE_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0)
-/** Telephoto framing: flatter projection, closer to axonometric read than wide FOV. */
-const BLACK_HOLE_FOV = 22
+const BLACK_HOLE_FOV = 45
 const DEFAULT_SCENE_FOV = 45
 
 const DEFAULT_FOCUS_DISTANCE = 4.5

@@ -1,36 +1,23 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import { useSolarStore } from '../store/useSolarStore'
 import {
   BLACK_HOLE_DEFAULTS,
   BLACK_HOLE_RAYMARCH_FRAG,
   BLACK_HOLE_RAYMARCH_VERT,
+  createBlackHoleUniforms,
 } from './blackHoleRaymarchShader'
 
 /**
- * Black hole via screen-space raymarching:
- * - Event horizon (r < r_s)
- * - Gravitational lensing (ray deflection ∝ 1/r²)
- * - Accretion disk (xz plane, hot gas layers)
- * - Distorted starfield when rays escape
+ * Full-screen raymarched black hole (tsBXW3).
+ * Ajustes visuales: edita BLACK_HOLE_DEFAULTS en blackHoleRaymarchShader.ts
  */
 export function BlackHole() {
   const { camera, size } = useThree()
   const materialRef = useRef<THREE.ShaderMaterial>(null)
 
-  const uniforms = useMemo(
-    () => ({
-      uTime: { value: 0 },
-      uResolution: { value: new THREE.Vector2(1, 1) },
-      uCameraPosition: { value: new THREE.Vector3() },
-      uInverseProjectionMatrix: { value: new THREE.Matrix4() },
-      uInverseViewMatrix: { value: new THREE.Matrix4() },
-      uBhSize: { value: BLACK_HOLE_DEFAULTS.size },
-      uDiskSpeed: { value: BLACK_HOLE_DEFAULTS.diskSpeed },
-      uAa: { value: BLACK_HOLE_DEFAULTS.aa },
-    }),
-    [],
-  )
+  const uniforms = useMemo(() => createBlackHoleUniforms(), [])
 
   const material = useMemo(
     () =>
@@ -40,7 +27,7 @@ export function BlackHole() {
         fragmentShader: BLACK_HOLE_RAYMARCH_FRAG,
         depthWrite: false,
         depthTest: false,
-        toneMapped: true,
+        toneMapped: false,
       }),
     [uniforms],
   )
@@ -54,17 +41,25 @@ export function BlackHole() {
     const mat = materialRef.current
     if (!mat) return
 
-    const persp = camera as THREE.PerspectiveCamera
+    const { view, mode } = useSolarStore.getState()
+    const cinematic =
+      view === 'blackHole' && mode === 'overview'
+
+    mat.uniforms.uUseShadertoyCamera.value = cinematic ? 1 : 0
     mat.uniforms.uTime.value = state.clock.elapsedTime
     mat.uniforms.uResolution.value.set(
       size.width * state.viewport.dpr,
       size.height * state.viewport.dpr,
     )
-    mat.uniforms.uCameraPosition.value.copy(persp.position)
-    mat.uniforms.uInverseProjectionMatrix.value.copy(
-      persp.projectionMatrixInverse,
-    )
-    mat.uniforms.uInverseViewMatrix.value.copy(persp.matrixWorld)
+
+    if (!cinematic) {
+      const persp = camera as THREE.PerspectiveCamera
+      mat.uniforms.uCameraPosition.value.copy(persp.position)
+      mat.uniforms.uInverseProjectionMatrix.value.copy(
+        persp.projectionMatrixInverse,
+      )
+      mat.uniforms.uInverseViewMatrix.value.copy(persp.matrixWorld)
+    }
   })
 
   return (
@@ -73,3 +68,6 @@ export function BlackHole() {
     </mesh>
   )
 }
+
+/** Re-export para quien importe desde el componente. */
+export { BLACK_HOLE_DEFAULTS }

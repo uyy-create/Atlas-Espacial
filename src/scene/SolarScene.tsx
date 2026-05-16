@@ -21,8 +21,9 @@ const BLOOM_BASE_THRESHOLD = 0.85
 const BLOOM_PEAK_THRESHOLD = 0.6
 const CA_PEAK_OFFSET = 0.0028
 const GALAXY_BLOOM_INTENSITY = 0.5
-const BLACK_HOLE_BLOOM_INTENSITY = 0.92
-const BLACK_HOLE_BLOOM_THRESHOLD = 0.58
+/** Subtle bloom in BH view — shader already carries most of the glow. */
+const BLACK_HOLE_BLOOM_INTENSITY = 0.38
+const BLACK_HOLE_BLOOM_THRESHOLD = 0.82
 
 function PostFX() {
   const { bloom, chromaticAberration, vignette } = useMemo(() => {
