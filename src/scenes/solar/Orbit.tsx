@@ -32,7 +32,7 @@ export function Orbit({ radius, segments = 256, planetId }: OrbitProps) {
   const isHighlighted = planetId !== undefined && (focusedId === planetId || hoveredId === planetId)
 
   if (focusedId === null) {
-    material.opacity = isHighlighted ? 0.45 : 0.2
+    material.opacity = isHighlighted ? 0.45 : 0.30
   } else if (isHighlighted) {
     material.opacity = 0.4
   } else {
