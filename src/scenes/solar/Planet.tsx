@@ -7,6 +7,7 @@ import { useSolarStore } from '../../store/useSolarStore'
 import { enhanceTextureQuality } from '../../components/textureQuality'
 import { PlanetRings } from './PlanetRings'
 import { Moon } from './Moon'
+import { Atmosphere } from './Atmosphere'
 
 interface PlanetProps {
   def: PlanetDef
@@ -58,7 +59,6 @@ export function Planet({ def }: PlanetProps) {
   const orbitRef = useRef<THREE.Group>(null)
   const tiltRef = useRef<THREE.Group>(null)
   const spinRef = useRef<THREE.Group>(null)
-  const meshRef = useRef<THREE.Mesh>(null)
   const thetaRef = useRef(def.orbitInitialAngle)
   const worldPosRef = useRef(new THREE.Vector3())
 
@@ -104,12 +104,12 @@ export function Planet({ def }: PlanetProps) {
     if (spinRef.current) {
       spinRef.current.rotation.y +=
         (TWO_PI / def.rotationPeriodSec) * delta
-    }
-    if (meshRef.current) {
+      // Hover grows the whole spin group so clouds and atmosphere scale
+      // with the surface instead of being swallowed by it.
       const target = hovered && !isOtherFocused ? 1.12 : 1
-      const current = meshRef.current.scale.x
+      const current = spinRef.current.scale.x
       const next = current + (target - current) * Math.min(1, delta * 8)
-      meshRef.current.scale.setScalar(next)
+      spinRef.current.scale.setScalar(next)
     }
   })
 
@@ -142,7 +142,6 @@ export function Planet({ def }: PlanetProps) {
       >
         <group ref={spinRef}>
           <mesh
-            ref={meshRef}
             raycast={canInteract ? undefined : skipRaycast}
             onClick={handleClick}
             onPointerOver={handlePointerOver}
@@ -170,6 +169,10 @@ export function Planet({ def }: PlanetProps) {
               radius={def.radius}
               maxAnisotropy={maxAnisotropy}
             />
+          )}
+
+          {def.atmosphere && (
+            <Atmosphere radius={def.radius} def={def.atmosphere} />
           )}
         </group>
 

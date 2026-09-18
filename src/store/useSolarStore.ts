@@ -39,6 +39,11 @@ export const getViewById = (id: ViewId): ViewOption =>
   VIEWS.find((v) => v.id === id) ?? VIEWS[0]
 
 interface SolarState {
+  /**
+   * False until the visitor dismisses the loading screen. The camera holds a
+   * wide establishing shot meanwhile and dollies in when this flips.
+   */
+  entered: boolean
   mode: CameraMode
   focusedId: string | null
   /**
@@ -53,6 +58,8 @@ interface SolarState {
   /** 0..1 progress of the active warp transition. */
   warpProgress: number
 
+  /** Dismisses the intro and starts the establishing dolly-in. */
+  enter: () => void
   focus: (id: string) => void
   focusNeighbor: (direction: 1 | -1) => void
   unfocus: () => void
@@ -70,6 +77,7 @@ interface SolarState {
 }
 
 export const useSolarStore = create<SolarState>((set, get) => ({
+  entered: false,
   mode: 'overview',
   focusedId: null,
   planetPositions: {},
@@ -78,6 +86,13 @@ export const useSolarStore = create<SolarState>((set, get) => ({
   view: 'solar',
   warpTargetView: null,
   warpProgress: 0,
+
+  enter: () => {
+    if (get().entered) return
+    // Reuse the "returning" transition: CameraRig eases from wherever the
+    // camera is (the intro shot) back to the overview framing.
+    set({ entered: true, mode: 'returning' })
+  },
 
   focus: (id) => {
     if (get().mode === 'warping') return
@@ -139,3 +154,10 @@ export const useSolarStore = create<SolarState>((set, get) => ({
       warpProgress: 0,
     }),
 }))
+
+// Dev-only handle for driving the app from the console / automation:
+//   __solarStore.getState().focus('earth')
+if (import.meta.env.DEV) {
+  ;(window as unknown as { __solarStore?: typeof useSolarStore }).__solarStore =
+    useSolarStore
+}

@@ -11,6 +11,11 @@ import {
 
 const SOLAR_DEFAULT_POSITION = new THREE.Vector3(0, 32, 78)
 const SOLAR_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0)
+/** Wide establishing shot held behind the loading screen. */
+const INTRO_POSITION = new THREE.Vector3(-18, 58, 150)
+/** Slow drift of the intro shot so the reveal isn't a frozen frame. */
+const INTRO_DRIFT_SPEED = 0.05
+const INTRO_DRIFT_RADIUS = 6
 const GALAXY_DEFAULT_POSITION = new THREE.Vector3(0, 62, 178)
 const GALAXY_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0)
 /**
@@ -33,6 +38,8 @@ const FOCUS_LOOKAT_SHIFT_RATIO = 0.45
 
 const FOCUS_DURATION = 1.6
 const RETURN_DURATION = 1.4
+/** Dolly-in from the intro shot, once the visitor presses "Entrar". */
+const INTRO_DURATION = 3.2
 const WARP_DURATION = 2.2
 const WARP_COMMIT_AT = 0.5
 
@@ -73,6 +80,8 @@ export function CameraRig() {
   const transitionStartLookAt = useRef(new THREE.Vector3())
   const previousMode = useRef<CameraMode>('overview')
   const previousFocusedId = useRef<string | null>(null)
+  const previousEntered = useRef(false)
+  const returnDuration = useRef(RETURN_DURATION)
 
   const warpStartTime = useRef(0)
   const warpStartPos = useRef(new THREE.Vector3())
@@ -82,12 +91,13 @@ export function CameraRig() {
   const warpCommitted = useRef(false)
 
   useEffect(() => {
-    camera.position.copy(SOLAR_DEFAULT_POSITION)
+    camera.position.copy(INTRO_POSITION)
     camera.lookAt(SOLAR_DEFAULT_TARGET)
   }, [camera])
 
   useFrame(({ camera, clock }, delta) => {
     const {
+      entered,
       mode,
       view,
       focusedId,
@@ -109,8 +119,25 @@ export function CameraRig() {
     persp.fov = THREE.MathUtils.lerp(persp.fov, targetFov, fovK)
     persp.updateProjectionMatrix()
 
+    if (!entered) {
+      // Hold the establishing shot, drifting slowly, until "Entrar".
+      const t = clock.elapsedTime * INTRO_DRIFT_SPEED
+      camera.position.set(
+        INTRO_POSITION.x + Math.sin(t) * INTRO_DRIFT_RADIUS,
+        INTRO_POSITION.y + Math.sin(t * 0.7) * INTRO_DRIFT_RADIUS * 0.3,
+        INTRO_POSITION.z + Math.cos(t) * INTRO_DRIFT_RADIUS,
+      )
+      lookAtRef.current.copy(SOLAR_DEFAULT_TARGET)
+      camera.lookAt(lookAtRef.current)
+      previousMode.current = mode
+      previousFocusedId.current = focusedId
+      return
+    }
+
     const modeChanged = mode !== previousMode.current
     const focusedChanged = focusedId !== previousFocusedId.current
+    const justEntered = entered !== previousEntered.current
+    previousEntered.current = entered
 
     if (modeChanged && mode === 'warping' && warpTargetView) {
       warpStartTime.current = clock.elapsedTime
@@ -123,6 +150,7 @@ export function CameraRig() {
       transitionStartTime.current = clock.elapsedTime
       transitionStartPos.current.copy(camera.position)
       transitionStartLookAt.current.copy(lookAtRef.current)
+      returnDuration.current = justEntered ? INTRO_DURATION : RETURN_DURATION
     }
     previousMode.current = mode
     previousFocusedId.current = focusedId
@@ -211,7 +239,8 @@ export function CameraRig() {
         camera.lookAt(lookAtRef.current)
       }
     } else if (mode === 'returning') {
-      const t = easeInOut(clamp01(elapsed / RETURN_DURATION))
+      const duration = returnDuration.current
+      const t = easeInOut(clamp01(elapsed / duration))
       const targetPos = getViewDefaultPosition(view)
       const targetLook = getViewDefaultTarget(view)
       camera.position.lerpVectors(transitionStartPos.current, targetPos, t)
@@ -222,7 +251,7 @@ export function CameraRig() {
       )
       camera.lookAt(lookAtRef.current)
 
-      if (elapsed >= RETURN_DURATION) {
+      if (elapsed >= duration) {
         completeReturn()
       }
     } else if (mode === 'overview') {

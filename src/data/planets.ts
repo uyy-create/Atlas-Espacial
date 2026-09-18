@@ -20,6 +20,15 @@ export interface RingDef {
   opacity?: number
 }
 
+export interface AtmosphereDef {
+  /** Glow colour (scattered light at the limb). */
+  color: string
+  /** Overall brightness multiplier. Default 1. */
+  intensity?: number
+  /** Outer halo radius relative to the planet. Default 1.16. */
+  scale?: number
+}
+
 export interface MoonDef {
   id: string
   name: string
@@ -61,6 +70,8 @@ export interface PlanetDef {
    */
   focusDistance?: number
   rings?: RingDef
+  /** Fresnel glow; omit for airless bodies. */
+  atmosphere?: AtmosphereDef
   moons?: MoonDef[]
   facts: PlanetFacts
   description: string
@@ -103,6 +114,7 @@ export const PLANETS: PlanetDef[] = [
     orbitInitialAngle: Math.PI * 0.7,
     axialTiltDeg: 177.4,
     rotationPeriodSec: 32,
+    atmosphere: { color: '#ffe3a3', intensity: 1.1, scale: 1.2 },
     facts: {
       diameter: '12 104 km',
       gravity: '8.87 m/s²',
@@ -140,6 +152,7 @@ export const PLANETS: PlanetDef[] = [
         inclinationDeg: 5.1,
       },
     ],
+    atmosphere: { color: '#5aa9ff', intensity: 1.25, scale: 1.18 },
     facts: {
       diameter: '12 742 km',
       gravity: '9.807 m/s²',
@@ -183,6 +196,7 @@ export const PLANETS: PlanetDef[] = [
         orbitInitialAngle: Math.PI,
       },
     ],
+    atmosphere: { color: '#ffb08a', intensity: 0.55, scale: 1.1 },
     facts: {
       diameter: '6 779 km',
       gravity: '3.71 m/s²',
@@ -245,6 +259,7 @@ export const PLANETS: PlanetDef[] = [
         orbitInitialAngle: Math.PI * 1.5,
       },
     ],
+    atmosphere: { color: '#f3d7a8', intensity: 0.7, scale: 1.1 },
     facts: {
       diameter: '139 820 km',
       gravity: '24.79 m/s²',
@@ -296,6 +311,7 @@ export const PLANETS: PlanetDef[] = [
         orbitInitialAngle: Math.PI * 0.6,
       },
     ],
+    atmosphere: { color: '#fbe8b8', intensity: 0.6, scale: 1.09 },
     facts: {
       diameter: '116 460 km',
       gravity: '10.44 m/s²',
@@ -331,6 +347,7 @@ export const PLANETS: PlanetDef[] = [
         orbitInitialAngle: 0,
       },
     ],
+    atmosphere: { color: '#9ff2ff', intensity: 1.0, scale: 1.14 },
     facts: {
       diameter: '50 724 km',
       gravity: '8.69 m/s²',
@@ -366,6 +383,7 @@ export const PLANETS: PlanetDef[] = [
         orbitInitialAngle: Math.PI * 0.3,
       },
     ],
+    atmosphere: { color: '#6f8cff', intensity: 1.1, scale: 1.15 },
     facts: {
       diameter: '49 244 km',
       gravity: '11.15 m/s²',
