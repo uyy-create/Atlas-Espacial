@@ -8,6 +8,7 @@ import {
   type CameraMode,
   type ViewId,
 } from '../../store/useSolarStore'
+import { FocusOrbit } from './FocusOrbit'
 
 const SOLAR_DEFAULT_POSITION = new THREE.Vector3(0, 32, 78)
 const SOLAR_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0)
@@ -28,6 +29,7 @@ const BLACK_HOLE_FOV = 45
 const DEFAULT_SCENE_FOV = 45
 
 const DEFAULT_FOCUS_DISTANCE = 4.5
+const WORLD_UP = new THREE.Vector3(0, 1, 0)
 /** How high above the orbital plane the camera sits when focused. */
 const FOCUS_HEIGHT = 1.6
 /**
@@ -67,13 +69,26 @@ const computeFocusDistance = (radius: number, override?: number): number => {
 
 export function CameraRig() {
   const camera = useThree((s) => s.camera)
+  const gl = useThree((s) => s.gl)
 
   const lookAtRef = useRef(new THREE.Vector3().copy(SOLAR_DEFAULT_TARGET))
 
   const tmpOutward = useRef(new THREE.Vector3())
   const tmpRight = useRef(new THREE.Vector3())
+  const tmpForward = useRef(new THREE.Vector3())
   const desiredPos = useRef(new THREE.Vector3())
   const desiredLookAt = useRef(new THREE.Vector3())
+
+  // Drag-to-orbit input while a planet is focused.
+  const orbitRef = useRef<FocusOrbit | null>(null)
+  useEffect(() => {
+    const orbit = new FocusOrbit(gl.domElement)
+    orbitRef.current = orbit
+    return () => {
+      orbit.dispose()
+      orbitRef.current = null
+    }
+  }, [gl])
 
   const transitionStartTime = useRef(0)
   const transitionStartPos = useRef(new THREE.Vector3())
@@ -186,6 +201,8 @@ export function CameraRig() {
 
     const elapsed = clock.elapsedTime - transitionStartTime.current
 
+    if (mode !== 'focused') orbitRef.current?.setEnabled(false)
+
     if ((mode === 'focusing' || mode === 'focused') && focusedId) {
       if (view !== 'solar') return
       const planetPos = planetPositions[focusedId]
@@ -193,8 +210,22 @@ export function CameraRig() {
       if (!planetPos || !def) return
 
       const focusDistance = computeFocusDistance(def.radius, def.focusDistance)
-      const lookAtShift = focusDistance * FOCUS_LOOKAT_SHIFT_RATIO
+      const focusHeight = FOCUS_HEIGHT + def.radius * 0.5
+      const defaultElevation = Math.atan2(focusHeight, focusDistance)
+      const defaultDistance = Math.hypot(focusDistance, focusHeight)
 
+      const orbit = orbitRef.current
+      if (orbit) {
+        if (focusedChanged) orbit.reset(defaultElevation)
+        orbit.setEnabled(mode === 'focused')
+        orbit.update(delta)
+      }
+      const azimuth = orbit?.azimuth ?? 0
+      const elevation = orbit?.elevation ?? defaultElevation
+      const distance = defaultDistance * (orbit?.zoom ?? 1)
+
+      // Frame of reference co-rotates with the planet: azimuth 0 looks at
+      // it from outside its orbit, so the Sun stays behind it as it moves.
       tmpOutward.current.set(planetPos.x, 0, planetPos.z)
       if (tmpOutward.current.lengthSq() < 1e-6) {
         tmpOutward.current.set(0, 0, 1)
@@ -207,11 +238,25 @@ export function CameraRig() {
         -tmpOutward.current.x,
       )
 
+      const horizontal = distance * Math.cos(elevation)
       desiredPos.current
         .copy(planetPos)
-        .addScaledVector(tmpOutward.current, focusDistance)
-      desiredPos.current.y += FOCUS_HEIGHT + def.radius * 0.5
+        .addScaledVector(tmpOutward.current, horizontal * Math.cos(azimuth))
+        .addScaledVector(tmpRight.current, horizontal * Math.sin(azimuth))
+      desiredPos.current.y += distance * Math.sin(elevation)
 
+      // Shift the look-at to the camera's right so the planet anchors on
+      // the left third of the screen whatever the orbit angle. Scales
+      // with zoom so it stays put while zooming.
+      tmpForward.current.copy(planetPos).sub(desiredPos.current).normalize()
+      tmpRight.current.crossVectors(tmpForward.current, WORLD_UP)
+      if (tmpRight.current.lengthSq() < 1e-6) {
+        tmpRight.current.set(1, 0, 0)
+      } else {
+        tmpRight.current.normalize()
+      }
+      const lookAtShift =
+        focusDistance * FOCUS_LOOKAT_SHIFT_RATIO * (orbit?.zoom ?? 1)
       desiredLookAt.current
         .copy(planetPos)
         .addScaledVector(tmpRight.current, lookAtShift)
@@ -232,10 +277,9 @@ export function CameraRig() {
 
         if (elapsed >= FOCUS_DURATION) setMode('focused')
       } else {
-        const settleSpeed = 5
-        const k = 1 - Math.exp(-settleSpeed * (1 / 60))
-        camera.position.lerp(desiredPos.current, k)
-        lookAtRef.current.lerp(desiredLookAt.current, k)
+        // The orbit input is already smoothed, so follow the planet exactly.
+        camera.position.copy(desiredPos.current)
+        lookAtRef.current.copy(desiredLookAt.current)
         camera.lookAt(lookAtRef.current)
       }
     } else if (mode === 'returning') {
