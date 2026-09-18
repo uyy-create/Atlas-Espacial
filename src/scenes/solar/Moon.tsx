@@ -4,12 +4,15 @@ import { useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import type { MoonDef } from '../../data/planets'
 import { enhanceTextureQuality } from '../../components/textureQuality'
+import { useTimeStore } from '../../store/useTimeStore'
+import {
+  MAX_MOON_RAD_PER_SEC,
+  visualAngularStep,
+} from '../../simulation/visualRate'
 
 interface MoonProps {
   def: MoonDef
 }
-
-const TWO_PI = Math.PI * 2
 
 function TexturedMoonMaterial({
   url,
@@ -40,11 +43,17 @@ export function Moon({ def }: MoonProps) {
   const thetaRef = useRef(def.orbitInitialAngle)
 
   useFrame((_, delta) => {
-    thetaRef.current =
-      (thetaRef.current + (TWO_PI / def.orbitPeriodSec) * delta) % TWO_PI
+    const { deltaDays } = useTimeStore.getState().clock
+    thetaRef.current += visualAngularStep(
+      def.orbitPeriodDays,
+      deltaDays,
+      delta,
+      MAX_MOON_RAD_PER_SEC,
+    )
     if (orbitRef.current) {
+      // Prograde = counter-clockwise seen from above, like the planets.
       const x = Math.cos(thetaRef.current) * def.orbitRadius
-      const z = Math.sin(thetaRef.current) * def.orbitRadius
+      const z = -Math.sin(thetaRef.current) * def.orbitRadius
       orbitRef.current.position.set(x, 0, z)
     }
   })

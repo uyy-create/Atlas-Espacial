@@ -1,9 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Html, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import type { PlanetDef } from '../../data/planets'
 import { useSolarStore } from '../../store/useSolarStore'
+import { useTimeStore } from '../../store/useTimeStore'
+import { heliocentricLongitude } from '../../simulation/ephemeris'
+import {
+  MAX_SPIN_RAD_PER_SEC,
+  visualAngularStep,
+} from '../../simulation/visualRate'
 import { enhanceTextureQuality } from '../../components/textureQuality'
 import { PlanetRings } from './PlanetRings'
 import { Moon } from './Moon'
@@ -13,16 +19,20 @@ interface PlanetProps {
   def: PlanetDef
 }
 
-const TWO_PI = Math.PI * 2
+/** Clouds drift relative to the surface at this fraction of the spin. */
+const CLOUD_DRIFT_RATIO = 0.15
 
 function CloudLayer({
   url,
   radius,
   maxAnisotropy,
+  spinStepRef,
 }: {
   url: string
   radius: number
   maxAnisotropy: number
+  /** Angular step the parent surface took this frame. */
+  spinStepRef: RefObject<number>
 }) {
   const cloudsMap = useTexture(url) as THREE.Texture
   const ref = useRef<THREE.Mesh>(null)
@@ -31,8 +41,10 @@ function CloudLayer({
     enhanceTextureQuality(cloudsMap, maxAnisotropy, 'color')
   }, [cloudsMap, maxAnisotropy])
 
-  useFrame((_, delta) => {
-    if (ref.current) ref.current.rotation.y += delta * 0.04
+  useFrame(() => {
+    if (ref.current) {
+      ref.current.rotation.y += spinStepRef.current * CLOUD_DRIFT_RATIO
+    }
   })
 
   return (
@@ -59,7 +71,7 @@ export function Planet({ def }: PlanetProps) {
   const orbitRef = useRef<THREE.Group>(null)
   const tiltRef = useRef<THREE.Group>(null)
   const spinRef = useRef<THREE.Group>(null)
-  const thetaRef = useRef(def.orbitInitialAngle)
+  const spinStepRef = useRef(0)
   const worldPosRef = useRef(new THREE.Vector3())
 
   const [hovered, setHovered] = useState(false)
@@ -92,18 +104,26 @@ export function Planet({ def }: PlanetProps) {
   }, [hovered])
 
   useFrame((_, delta) => {
-    thetaRef.current =
-      (thetaRef.current + (TWO_PI / def.orbitPeriodSec) * delta) % TWO_PI
-    const x = Math.cos(thetaRef.current) * def.orbitRadius
-    const z = Math.sin(thetaRef.current) * def.orbitRadius
+    const { julianDay, deltaDays } = useTimeStore.getState().clock
+
+    // Real heliocentric longitude, counter-clockwise seen from above (+y).
+    const lambda = heliocentricLongitude(def.elements, julianDay)
+    const x = Math.cos(lambda) * def.orbitRadius
+    const z = -Math.sin(lambda) * def.orbitRadius
 
     if (orbitRef.current) {
       orbitRef.current.position.set(x, 0, z)
       orbitRef.current.getWorldPosition(worldPosRef.current)
     }
     if (spinRef.current) {
-      spinRef.current.rotation.y +=
-        (TWO_PI / def.rotationPeriodSec) * delta
+      const step = visualAngularStep(
+        def.rotationPeriodDays,
+        deltaDays,
+        delta,
+        MAX_SPIN_RAD_PER_SEC,
+      )
+      spinStepRef.current = step
+      spinRef.current.rotation.y += step
       // Hover grows the whole spin group so clouds and atmosphere scale
       // with the surface instead of being swallowed by it.
       const target = hovered && !isOtherFocused ? 1.12 : 1
@@ -115,6 +135,8 @@ export function Planet({ def }: PlanetProps) {
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     if (!canInteract) return
+    // A drag that happens to end over a planet is not a click.
+    if (e.delta > 4) return
     e.stopPropagation()
     focus(def.id)
   }
@@ -168,6 +190,7 @@ export function Planet({ def }: PlanetProps) {
               url={def.cloudsUrl}
               radius={def.radius}
               maxAnisotropy={maxAnisotropy}
+              spinStepRef={spinStepRef}
             />
           )}
 

@@ -5,6 +5,7 @@ import { WarpFadeOverlay } from './transitions/warp/WarpFadeOverlay'
 import { PlanetInfoPanel } from './ui/PlanetInfoPanel'
 import { Navigator } from './ui/Navigator'
 import { LoadingScreen } from './ui/LoadingScreen'
+import { TimeControls } from './ui/TimeControls'
 import { useSolarStore } from './store/useSolarStore'
 
 function App() {
@@ -82,6 +83,7 @@ function App() {
       </AnimatePresence>
 
       <PlanetInfoPanel />
+      <TimeControls />
       <LoadingScreen />
     </div>
   )

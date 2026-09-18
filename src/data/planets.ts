@@ -1,3 +1,5 @@
+import type { OrbitalElements } from '../simulation/ephemeris'
+
 export interface PlanetFacts {
   diameter: string
   gravity: string
@@ -40,9 +42,9 @@ export interface MoonDef {
   radius: number
   /** Distance from the parent planet in scene units. */
   orbitRadius: number
-  /** Seconds per revolution around the parent. */
-  orbitPeriodSec: number
-  /** Initial phase, in radians. */
+  /** Real sidereal period in days; negative = retrograde. */
+  orbitPeriodDays: number
+  /** Initial phase, in radians (moon phases are not ephemeris-driven). */
   orbitInitialAngle: number
   /** Inclination relative to the parent's equator (degrees). */
   inclinationDeg?: number
@@ -60,11 +62,13 @@ export interface PlanetDef {
   cloudsUrl?: string
   /** Visual radius in scene units. */
   radius: number
+  /** Decorative orbit radius (not to scale). */
   orbitRadius: number
-  orbitPeriodSec: number
-  orbitInitialAngle: number
+  /** Mean orbital elements: the angle along the orbit is real for any date. */
+  elements: OrbitalElements
   axialTiltDeg: number
-  rotationPeriodSec: number
+  /** Real sidereal rotation period in days. */
+  rotationPeriodDays: number
   /**
    * Override the camera's focus distance. Defaults to a function of radius.
    */
@@ -87,10 +91,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/mercurymap.jpg`,
     radius: 0.55,
     orbitRadius: 9,
-    orbitPeriodSec: 24,
-    orbitInitialAngle: Math.PI * 0.1,
+    elements: { L0: 252.2503235, Lrate: 149472.67411175, varpi: 77.45779628, e: 0.20563593 },
     axialTiltDeg: 0.03,
-    rotationPeriodSec: 14,
+    rotationPeriodDays: 58.646,
     facts: {
       diameter: '4 879 km',
       gravity: '3.7 m/s²',
@@ -110,10 +113,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/venusmap.jpg`,
     radius: 0.85,
     orbitRadius: 12.5,
-    orbitPeriodSec: 36,
-    orbitInitialAngle: Math.PI * 0.7,
+    elements: { L0: 181.9790995, Lrate: 58517.81538729, varpi: 131.60246718, e: 0.00677672 },
     axialTiltDeg: 177.4,
-    rotationPeriodSec: 32,
+    rotationPeriodDays: 243.02,
     atmosphere: { color: '#ffe3a3', intensity: 1.1, scale: 1.2 },
     facts: {
       diameter: '12 104 km',
@@ -135,10 +137,9 @@ export const PLANETS: PlanetDef[] = [
     cloudsUrl: `${TEX}/earthcloudmap.jpg`,
     radius: 0.9,
     orbitRadius: 16,
-    orbitPeriodSec: 60,
-    orbitInitialAngle: Math.PI * 0.25,
+    elements: { L0: 100.46457166, Lrate: 35999.37244981, varpi: 102.93768193, e: 0.01671123 },
     axialTiltDeg: 23.5,
-    rotationPeriodSec: 6,
+    rotationPeriodDays: 0.99727,
     moons: [
       {
         id: 'moon',
@@ -147,7 +148,7 @@ export const PLANETS: PlanetDef[] = [
         textureUrl: `${TEX}/moonmap1k.jpg`,
         radius: 0.24,
         orbitRadius: 1.7,
-        orbitPeriodSec: 8,
+        orbitPeriodDays: 27.32,
         orbitInitialAngle: 0,
         inclinationDeg: 5.1,
       },
@@ -172,10 +173,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/marsmap1k.jpg`,
     radius: 0.7,
     orbitRadius: 20,
-    orbitPeriodSec: 90,
-    orbitInitialAngle: Math.PI * 1.3,
+    elements: { L0: -4.55343205, Lrate: 19140.30268499, varpi: -23.94362959, e: 0.0933941 },
     axialTiltDeg: 25.2,
-    rotationPeriodSec: 6.2,
+    rotationPeriodDays: 1.02596,
     moons: [
       {
         id: 'phobos',
@@ -183,7 +183,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#7e6b5a',
         radius: 0.09,
         orbitRadius: 1.05,
-        orbitPeriodSec: 3,
+        orbitPeriodDays: 0.319,
         orbitInitialAngle: 0,
       },
       {
@@ -192,7 +192,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#9b8a78',
         radius: 0.07,
         orbitRadius: 1.45,
-        orbitPeriodSec: 5.5,
+        orbitPeriodDays: 1.263,
         orbitInitialAngle: Math.PI,
       },
     ],
@@ -216,10 +216,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/jupitermap.jpg`,
     radius: 2.6,
     orbitRadius: 27,
-    orbitPeriodSec: 200,
-    orbitInitialAngle: Math.PI * 1.8,
+    elements: { L0: 34.39644051, Lrate: 3034.74612775, varpi: 14.72847983, e: 0.04838624 },
     axialTiltDeg: 3.1,
-    rotationPeriodSec: 4.2,
+    rotationPeriodDays: 0.41354,
     focusDistance: 8.5,
     moons: [
       {
@@ -228,7 +227,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#f4d96a',
         radius: 0.16,
         orbitRadius: 3.2,
-        orbitPeriodSec: 4,
+        orbitPeriodDays: 1.769,
         orbitInitialAngle: 0,
       },
       {
@@ -237,7 +236,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#e9d3a8',
         radius: 0.15,
         orbitRadius: 3.9,
-        orbitPeriodSec: 6,
+        orbitPeriodDays: 3.551,
         orbitInitialAngle: Math.PI * 0.5,
       },
       {
@@ -246,7 +245,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#b9a489',
         radius: 0.22,
         orbitRadius: 4.7,
-        orbitPeriodSec: 9,
+        orbitPeriodDays: 7.155,
         orbitInitialAngle: Math.PI,
       },
       {
@@ -255,7 +254,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#6e6354',
         radius: 0.2,
         orbitRadius: 5.6,
-        orbitPeriodSec: 13,
+        orbitPeriodDays: 16.69,
         orbitInitialAngle: Math.PI * 1.5,
       },
     ],
@@ -279,10 +278,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/saturnmap.jpg`,
     radius: 2.2,
     orbitRadius: 36,
-    orbitPeriodSec: 300,
-    orbitInitialAngle: Math.PI * 0.4,
+    elements: { L0: 49.95424423, Lrate: 1222.49362201, varpi: 92.59887831, e: 0.05386179 },
     axialTiltDeg: 26.7,
-    rotationPeriodSec: 4.6,
+    rotationPeriodDays: 0.44401,
     focusDistance: 9,
     rings: {
       innerRadius: 2.7,
@@ -298,7 +296,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#d99a52',
         radius: 0.22,
         orbitRadius: 5.4,
-        orbitPeriodSec: 11,
+        orbitPeriodDays: 15.95,
         orbitInitialAngle: 0,
       },
       {
@@ -307,7 +305,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#f0f0f5',
         radius: 0.09,
         orbitRadius: 4.1,
-        orbitPeriodSec: 5,
+        orbitPeriodDays: 1.37,
         orbitInitialAngle: Math.PI * 0.6,
       },
     ],
@@ -331,10 +329,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/uranusmap.jpg`,
     radius: 1.5,
     orbitRadius: 45,
-    orbitPeriodSec: 420,
-    orbitInitialAngle: Math.PI * 1.2,
+    elements: { L0: 313.23810451, Lrate: 428.48202785, varpi: 170.9542763, e: 0.04725744 },
     axialTiltDeg: 97.8,
-    rotationPeriodSec: 5,
+    rotationPeriodDays: 0.71833,
     focusDistance: 6.5,
     moons: [
       {
@@ -343,7 +340,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#a99b8b',
         radius: 0.1,
         orbitRadius: 2.8,
-        orbitPeriodSec: 8,
+        orbitPeriodDays: 8.706,
         orbitInitialAngle: 0,
       },
     ],
@@ -367,10 +364,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/neptunemap.jpg`,
     radius: 1.45,
     orbitRadius: 53,
-    orbitPeriodSec: 540,
-    orbitInitialAngle: Math.PI * 0.55,
+    elements: { L0: -55.12002969, Lrate: 218.45945325, varpi: 44.96476227, e: 0.00859048 },
     axialTiltDeg: 28.3,
-    rotationPeriodSec: 5.2,
+    rotationPeriodDays: 0.67125,
     focusDistance: 6.5,
     moons: [
       {
@@ -379,7 +375,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#cfd6ce',
         radius: 0.12,
         orbitRadius: 3,
-        orbitPeriodSec: 9,
+        orbitPeriodDays: -5.877,
         orbitInitialAngle: Math.PI * 0.3,
       },
     ],
