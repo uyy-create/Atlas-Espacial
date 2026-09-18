@@ -44,6 +44,8 @@ interface SolarState {
    * wide establishing shot meanwhile and dollies in when this flips.
    */
   entered: boolean
+  /** Planet to fly to right after entering (from a deep link). */
+  pendingFocusId: string | null
   mode: CameraMode
   focusedId: string | null
   /**
@@ -78,6 +80,7 @@ interface SolarState {
 
 export const useSolarStore = create<SolarState>((set, get) => ({
   entered: false,
+  pendingFocusId: null,
   mode: 'overview',
   focusedId: null,
   planetPositions: {},
@@ -88,7 +91,23 @@ export const useSolarStore = create<SolarState>((set, get) => ({
   warpProgress: 0,
 
   enter: () => {
-    if (get().entered) return
+    const { entered, view, pendingFocusId } = get()
+    if (entered) return
+    // The black hole renders through its own shader camera: nothing to dolly.
+    if (view === 'blackHole') {
+      set({ entered: true, mode: 'overview', pendingFocusId: null })
+      return
+    }
+    // Deep link to a planet: fly straight from the intro shot to it.
+    if (view === 'solar' && pendingFocusId) {
+      set({
+        entered: true,
+        mode: 'focusing',
+        focusedId: pendingFocusId,
+        pendingFocusId: null,
+      })
+      return
+    }
     // Reuse the "returning" transition: CameraRig eases from wherever the
     // camera is (the intro shot) back to the overview framing.
     set({ entered: true, mode: 'returning' })

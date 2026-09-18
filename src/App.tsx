@@ -7,6 +7,7 @@ import { Navigator } from './ui/Navigator'
 import { LoadingScreen } from './ui/LoadingScreen'
 import { TimeControls } from './ui/TimeControls'
 import { useSolarStore } from './store/useSolarStore'
+import { useUrlSync } from './routing/useUrlSync'
 
 function App() {
   const entered = useSolarStore((s) => s.entered)
@@ -15,6 +16,8 @@ function App() {
   const unfocus = useSolarStore((s) => s.unfocus)
   const focusNeighbor = useSolarStore((s) => s.focusNeighbor)
   const navigateToView = useSolarStore((s) => s.navigateToView)
+
+  useUrlSync()
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

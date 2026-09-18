@@ -32,12 +32,16 @@ interface TimeState {
   paused: boolean
   speedId: string
   clock: SimClock
+  /** Bumped on every explicit jump of the clock so subscribers can react. */
+  dateVersion: number
 
   togglePaused: () => void
   setPaused: (paused: boolean) => void
   setSpeed: (id: string) => void
   /** Jump the simulation to the current real date. */
   resetToNow: () => void
+  /** Jump the simulation to a given date. */
+  setDate: (date: Date) => void
   /** Advance the clock by one rendered frame of `deltaSec` seconds. */
   advance: (deltaSec: number) => void
 }
@@ -50,13 +54,19 @@ export const useTimeStore = create<TimeState>((set, get) => ({
   paused: false,
   speedId: DEFAULT_SPEED_ID,
   clock: { julianDay: dateToJulianDay(new Date()), deltaDays: 0 },
+  dateVersion: 0,
 
   togglePaused: () => set((s) => ({ paused: !s.paused })),
   setPaused: (paused) => set({ paused }),
   setSpeed: (id) => set({ speedId: getSpeedById(id).id }),
 
   resetToNow: () => {
-    get().clock.julianDay = dateToJulianDay(new Date())
+    get().setDate(new Date())
+  },
+
+  setDate: (date) => {
+    get().clock.julianDay = dateToJulianDay(date)
+    set((s) => ({ dateVersion: s.dateVersion + 1 }))
   },
 
   advance: (deltaSec) => {

@@ -12,8 +12,9 @@ import { FocusOrbit } from './FocusOrbit'
 
 const SOLAR_DEFAULT_POSITION = new THREE.Vector3(0, 32, 78)
 const SOLAR_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0)
-/** Wide establishing shot held behind the loading screen. */
+/** Wide establishing shots held behind the loading screen, per view. */
 const INTRO_POSITION = new THREE.Vector3(-18, 58, 150)
+const GALAXY_INTRO_POSITION = new THREE.Vector3(-30, 120, 300)
 /** Slow drift of the intro shot so the reveal isn't a frozen frame. */
 const INTRO_DRIFT_SPEED = 0.05
 const INTRO_DRIFT_RADIUS = 6
@@ -49,6 +50,9 @@ const easeInOut = gsap.parseEase('power3.inOut')
 const easeInOutQuint = (t: number) =>
   t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2
 const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n)
+
+const getViewIntroPosition = (view: ViewId): THREE.Vector3 =>
+  view === 'galaxy' ? GALAXY_INTRO_POSITION : INTRO_POSITION
 
 const getViewDefaultPosition = (view: ViewId): THREE.Vector3 => {
   if (view === 'galaxy') return GALAXY_DEFAULT_POSITION
@@ -97,6 +101,7 @@ export function CameraRig() {
   const previousFocusedId = useRef<string | null>(null)
   const previousEntered = useRef(false)
   const returnDuration = useRef(RETURN_DURATION)
+  const focusDuration = useRef(FOCUS_DURATION)
 
   const warpStartTime = useRef(0)
   const warpStartPos = useRef(new THREE.Vector3())
@@ -137,10 +142,11 @@ export function CameraRig() {
     if (!entered) {
       // Hold the establishing shot, drifting slowly, until "Entrar".
       const t = clock.elapsedTime * INTRO_DRIFT_SPEED
+      const intro = getViewIntroPosition(view)
       camera.position.set(
-        INTRO_POSITION.x + Math.sin(t) * INTRO_DRIFT_RADIUS,
-        INTRO_POSITION.y + Math.sin(t * 0.7) * INTRO_DRIFT_RADIUS * 0.3,
-        INTRO_POSITION.z + Math.cos(t) * INTRO_DRIFT_RADIUS,
+        intro.x + Math.sin(t) * INTRO_DRIFT_RADIUS,
+        intro.y + Math.sin(t * 0.7) * INTRO_DRIFT_RADIUS * 0.3,
+        intro.z + Math.cos(t) * INTRO_DRIFT_RADIUS,
       )
       lookAtRef.current.copy(SOLAR_DEFAULT_TARGET)
       camera.lookAt(lookAtRef.current)
@@ -166,6 +172,7 @@ export function CameraRig() {
       transitionStartPos.current.copy(camera.position)
       transitionStartLookAt.current.copy(lookAtRef.current)
       returnDuration.current = justEntered ? INTRO_DURATION : RETURN_DURATION
+      focusDuration.current = justEntered ? INTRO_DURATION : FOCUS_DURATION
     }
     previousMode.current = mode
     previousFocusedId.current = focusedId
@@ -262,7 +269,8 @@ export function CameraRig() {
         .addScaledVector(tmpRight.current, lookAtShift)
 
       if (mode === 'focusing') {
-        const t = easeInOut(clamp01(elapsed / FOCUS_DURATION))
+        const duration = focusDuration.current
+        const t = easeInOut(clamp01(elapsed / duration))
         camera.position.lerpVectors(
           transitionStartPos.current,
           desiredPos.current,
@@ -275,7 +283,7 @@ export function CameraRig() {
         )
         camera.lookAt(lookAtRef.current)
 
-        if (elapsed >= FOCUS_DURATION) setMode('focused')
+        if (elapsed >= duration) setMode('focused')
       } else {
         // The orbit input is already smoothed, so follow the planet exactly.
         camera.position.copy(desiredPos.current)
