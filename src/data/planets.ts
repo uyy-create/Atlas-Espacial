@@ -9,18 +9,44 @@ export interface PlanetFacts {
   distanceFromSun: string
 }
 
-export interface RingDef {
+export interface RingBand {
+  /** Inner edge, as a fraction 0..1 of [innerRadius, outerRadius]. */
+  from: number
+  /** Outer edge, same scale. */
+  to: number
+  color: string
+  /** Peak opacity of the band. */
+  alpha: number
+  /** Edge softness as a fraction of the band width (0 = hard edge). */
+  soft?: number
+}
+
+/**
+ * Ring system: either a texture pair (Saturn) or a procedural radial
+ * profile of bands (thin, dark systems like Uranus and Neptune, for which
+ * no texture exists and none is needed).
+ */
+export type RingDef = {
   innerRadius: number
   outerRadius: number
-  /** Color/transmission map (jpg). */
-  textureUrl: string
-  /** Alpha map (greyscale) – white = opaque. */
-  alphaUrl?: string
   /** Extra tilt over the planet's axial tilt, in degrees. */
   tiltDeg?: number
   /** Multiplier on the alpha map. */
   opacity?: number
-}
+} & (
+  | {
+      /** Color/transmission map (jpg). */
+      textureUrl: string
+      /** Alpha map (greyscale) – white = opaque. */
+      alphaUrl?: string
+      bands?: undefined
+    }
+  | {
+      textureUrl?: undefined
+      alphaUrl?: undefined
+      bands: RingBand[]
+    }
+)
 
 export interface AtmosphereDef {
   /** Glow colour (scattered light at the limb). */
@@ -344,6 +370,24 @@ export const PLANETS: PlanetDef[] = [
         orbitInitialAngle: 0,
       },
     ],
+    // Thirteen narrow, dark rings between 1.64 and 2.0 radii; epsilon is
+    // by far the brightest. Radii are real, widths exaggerated to be seen.
+    rings: {
+      innerRadius: 2.4,
+      outerRadius: 3.08,
+      bands: [
+        { from: 0.076, to: 0.088, color: '#a9adb8', alpha: 0.28, soft: 0.4 },
+        { from: 0.109, to: 0.121, color: '#a9adb8', alpha: 0.28, soft: 0.4 },
+        { from: 0.14, to: 0.152, color: '#a9adb8', alpha: 0.3, soft: 0.4 },
+        { from: 0.322, to: 0.34, color: '#b4b8c4', alpha: 0.5, soft: 0.35 },
+        { from: 0.401, to: 0.419, color: '#b4b8c4', alpha: 0.5, soft: 0.35 },
+        { from: 0.51, to: 0.524, color: '#a9adb8', alpha: 0.3, soft: 0.4 },
+        { from: 0.573, to: 0.587, color: '#b4b8c4', alpha: 0.45, soft: 0.35 },
+        { from: 0.655, to: 0.669, color: '#b4b8c4', alpha: 0.45, soft: 0.35 },
+        { from: 0.783, to: 0.797, color: '#a9adb8', alpha: 0.18, soft: 0.5 },
+        { from: 0.88, to: 0.912, color: '#c8ccd8', alpha: 0.8, soft: 0.3 },
+      ],
+    },
     atmosphere: { color: '#9ff2ff', intensity: 1.0, scale: 1.14 },
     facts: {
       diameter: '50 724 km',
@@ -354,7 +398,7 @@ export const PLANETS: PlanetDef[] = [
       distanceFromSun: '2 872.5 millones de km',
     },
     description:
-      'Único planeta que rota tumbado sobre su lado, con un eje de rotación inclinado casi 98°. Su atmósfera de hidrógeno, helio y metano da el característico tono cian. Posee un sistema de anillos finos y oscuros.',
+      'Único planeta que rota tumbado sobre su lado, con un eje de rotación inclinado casi 98°. Su atmósfera de hidrógeno, helio y metano da el característico tono cian. Sus trece anillos, finos y oscuros, giran casi perpendiculares a su órbita.',
   },
   {
     id: 'neptune',
@@ -379,6 +423,19 @@ export const PLANETS: PlanetDef[] = [
         orbitInitialAngle: Math.PI * 0.3,
       },
     ],
+    // Galle (broad, faint), Le Verrier, Lassell sheet, Arago and Adams
+    // (the brightest, with its clumpy arcs) at their real radii.
+    rings: {
+      innerRadius: 2.39,
+      outerRadius: 3.77,
+      bands: [
+        { from: 0.042, to: 0.116, color: '#d8d2c8', alpha: 0.1, soft: 0.5 },
+        { from: 0.518, to: 0.534, color: '#e0dad0', alpha: 0.5, soft: 0.35 },
+        { from: 0.534, to: 0.695, color: '#d8d2c8', alpha: 0.07, soft: 0.3 },
+        { from: 0.69, to: 0.7, color: '#e0dad0', alpha: 0.25, soft: 0.4 },
+        { from: 0.928, to: 0.946, color: '#ece6dc', alpha: 0.65, soft: 0.3 },
+      ],
+    },
     atmosphere: { color: '#6f8cff', intensity: 1.1, scale: 1.15 },
     facts: {
       diameter: '49 244 km',
@@ -389,7 +446,7 @@ export const PLANETS: PlanetDef[] = [
       distanceFromSun: '4 495 millones de km',
     },
     description:
-      'El planeta más lejano del sistema solar, con vientos que superan los 2 100 km/h, los más rápidos jamás registrados. Su intenso azul proviene del metano atmosférico. Tritón, su mayor luna, orbita en sentido retrógrado.',
+      'El planeta más lejano del sistema solar, con vientos que superan los 2 100 km/h, los más rápidos jamás registrados. Su intenso azul proviene del metano atmosférico. Tiene cinco anillos tenues de polvo y Tritón, su mayor luna, orbita en sentido retrógrado.',
   },
 ]
 
