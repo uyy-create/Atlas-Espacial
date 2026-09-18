@@ -59,7 +59,7 @@ const computeFocusDistance = (radius: number, override?: number): number => {
 }
 
 export function CameraRig() {
-  const { camera, clock } = useThree()
+  const camera = useThree((s) => s.camera)
 
   const lookAtRef = useRef(new THREE.Vector3().copy(SOLAR_DEFAULT_TARGET))
 
@@ -86,7 +86,7 @@ export function CameraRig() {
     camera.lookAt(SOLAR_DEFAULT_TARGET)
   }, [camera])
 
-  useFrame((_, delta) => {
+  useFrame(({ camera, clock }, delta) => {
     const {
       mode,
       view,

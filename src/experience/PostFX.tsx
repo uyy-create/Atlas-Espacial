@@ -7,7 +7,7 @@ import {
   BlendFunction,
   KernelSize,
 } from 'postprocessing'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useSolarStore } from '../store/useSolarStore'
 import { computeWarpStreakIntensity } from '../transitions/warp/blackHoleTransition'
@@ -22,43 +22,50 @@ const GALAXY_BLOOM_INTENSITY = 0.5
 const BLACK_HOLE_BLOOM_INTENSITY = 0.38
 const BLACK_HOLE_BLOOM_THRESHOLD = 0.82
 
+/**
+ * The effects are built once and handed to `<primitive>`; per-frame tuning
+ * goes through the refs R3F attaches to those same objects. We don't use the
+ * `<Bloom>`-style wrappers from @react-three/postprocessing: they key their
+ * memo on `JSON.stringify(props)`, and with React 19 putting `ref` in props
+ * that serialises the whole effect graph and throws on re-render.
+ */
 export function PostFX() {
-  const { bloom, chromaticAberration, vignette } = useMemo(() => {
-    const bloomEffect = new BloomEffect({
+  const effects = useMemo(() => {
+    const bloom = new BloomEffect({
       intensity: BLOOM_BASE_INTENSITY,
       luminanceThreshold: BLOOM_BASE_THRESHOLD,
       luminanceSmoothing: 0.2,
       kernelSize: KernelSize.LARGE,
       mipmapBlur: true,
     })
-    bloomEffect.blendMode.blendFunction = BlendFunction.ADD
+    bloom.blendMode.blendFunction = BlendFunction.ADD
 
-    const caEffect = new ChromaticAberrationEffect({
+    const chromaticAberration = new ChromaticAberrationEffect({
       offset: new THREE.Vector2(0, 0),
       radialModulation: false,
       modulationOffset: 0,
     })
 
-    const vignetteEffect = new VignetteEffect({
+    const vignette = new VignetteEffect({
       offset: 0.35,
       darkness: 0.45,
       blendFunction: BlendFunction.NORMAL,
     })
 
-    return {
-      bloom: bloomEffect,
-      chromaticAberration: caEffect,
-      vignette: vignetteEffect,
-    }
+    return { bloom, chromaticAberration, vignette }
   }, [])
 
   useEffect(() => {
     return () => {
-      bloom.dispose()
-      chromaticAberration.dispose()
-      vignette.dispose()
+      effects.bloom.dispose()
+      effects.chromaticAberration.dispose()
+      effects.vignette.dispose()
     }
-  }, [bloom, chromaticAberration, vignette])
+  }, [effects])
+
+  const bloomRef = useRef<BloomEffect>(null)
+  const chromaticAberrationRef = useRef<ChromaticAberrationEffect>(null)
+  const vignetteRef = useRef<VignetteEffect>(null)
 
   useFrame(() => {
     const { mode, view, warpTargetView, warpProgress } =
@@ -70,43 +77,45 @@ export function PostFX() {
       warpProgress,
     )
 
-    const baseBloom =
-      view === 'galaxy'
-        ? GALAXY_BLOOM_INTENSITY
-        : view === 'blackHole'
-          ? BLACK_HOLE_BLOOM_INTENSITY
-          : BLOOM_BASE_INTENSITY
-    bloom.intensity = baseBloom + (BLOOM_PEAK_INTENSITY - baseBloom) * intensity
+    const bloom = bloomRef.current
+    if (bloom) {
+      const baseBloom =
+        view === 'galaxy'
+          ? GALAXY_BLOOM_INTENSITY
+          : view === 'blackHole'
+            ? BLACK_HOLE_BLOOM_INTENSITY
+            : BLOOM_BASE_INTENSITY
+      bloom.intensity =
+        baseBloom + (BLOOM_PEAK_INTENSITY - baseBloom) * intensity
 
-    const lumPass = (
-      bloom as unknown as {
-        luminancePass?: {
-          luminanceMaterial?: { threshold: number }
-        }
-      }
-    ).luminancePass
-    if (lumPass?.luminanceMaterial) {
       const baseThreshold =
         view === 'blackHole' ? BLACK_HOLE_BLOOM_THRESHOLD : BLOOM_BASE_THRESHOLD
-      lumPass.luminanceMaterial.threshold =
+      bloom.luminanceMaterial.threshold =
         baseThreshold - (baseThreshold - BLOOM_PEAK_THRESHOLD) * intensity
     }
 
     const bh = view === 'blackHole'
-    const caBh = bh ? 0.00055 : 0
-    chromaticAberration.offset.set(
-      caBh + intensity * CA_PEAK_OFFSET,
-      caBh + intensity * CA_PEAK_OFFSET,
-    )
-    vignette.darkness = bh ? 0.56 : 0.45
-    vignette.offset = bh ? 0.44 : 0.35
+    const chromaticAberration = chromaticAberrationRef.current
+    if (chromaticAberration) {
+      const caBh = bh ? 0.00055 : 0
+      chromaticAberration.offset.set(
+        caBh + intensity * CA_PEAK_OFFSET,
+        caBh + intensity * CA_PEAK_OFFSET,
+      )
+    }
+
+    const vignette = vignetteRef.current
+    if (vignette) {
+      vignette.darkness = bh ? 0.56 : 0.45
+      vignette.offset = bh ? 0.44 : 0.35
+    }
   })
 
   return (
     <EffectComposer multisampling={0}>
-      <primitive object={bloom} />
-      <primitive object={chromaticAberration} />
-      <primitive object={vignette} />
+      <primitive ref={bloomRef} object={effects.bloom} />
+      <primitive ref={chromaticAberrationRef} object={effects.chromaticAberration} />
+      <primitive ref={vignetteRef} object={effects.vignette} />
     </EffectComposer>
   )
 }
