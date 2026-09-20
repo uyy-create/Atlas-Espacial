@@ -6,6 +6,7 @@ import { CameraRig } from '../transitions/camera/CameraRig'
 import { WarpSceneLayers } from '../transitions/warp/WarpSceneLayers'
 import { WarpStreaks } from '../transitions/warp/WarpStreaks'
 import { PostFX } from './PostFX'
+import { SimulationClock } from '../simulation/SimulationClock'
 
 export function SolarScene() {
   const view = useSolarStore((s) => s.view)
@@ -45,6 +46,7 @@ export function SolarScene() {
         <WarpSceneLayers />
       </Suspense>
 
+      <SimulationClock />
       <WarpStreaks />
       <CameraRig />
       <PostFX />

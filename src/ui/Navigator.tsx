@@ -39,9 +39,14 @@ export function Navigator() {
     }
   }, [open])
 
-  useEffect(() => {
+  // Close the menu the moment a warp starts (it may be triggered from the
+  // scene, not from this menu). Adjusting state on a prop change during
+  // render is the pattern React recommends over an effect.
+  const [wasWarping, setWasWarping] = useState(isWarping)
+  if (isWarping !== wasWarping) {
+    setWasWarping(isWarping)
     if (isWarping) setOpen(false)
-  }, [isWarping])
+  }
 
   const handleSelect = (id: ViewId) => {
     setOpen(false)

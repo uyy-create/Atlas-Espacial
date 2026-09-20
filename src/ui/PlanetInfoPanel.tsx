@@ -141,13 +141,19 @@ export function PlanetInfoPanel() {
             </button>
           </nav>
 
-          <p className="mt-4 flex items-center justify-center gap-3 text-[10px] uppercase tracking-[0.3em] text-white/35">
+          <p className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.3em] text-white/35">
             <KeyHint label="←" />
             <KeyHint label="→" />
             <span>navegar</span>
             <span aria-hidden className="text-white/20">·</span>
             <KeyHint label="Esc" />
             <span>salir</span>
+            <span aria-hidden className="text-white/20">·</span>
+            <span>arrastrar</span>
+            <span className="text-white/55">orbitar</span>
+            <span aria-hidden className="text-white/20">·</span>
+            <span>rueda</span>
+            <span className="text-white/55">zoom</span>
           </p>
         </motion.aside>
       )}

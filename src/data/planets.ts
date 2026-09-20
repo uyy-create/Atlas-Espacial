@@ -1,3 +1,5 @@
+import type { OrbitalElements } from '../simulation/ephemeris'
+
 export interface PlanetFacts {
   diameter: string
   gravity: string
@@ -7,17 +9,52 @@ export interface PlanetFacts {
   distanceFromSun: string
 }
 
-export interface RingDef {
+export interface RingBand {
+  /** Inner edge, as a fraction 0..1 of [innerRadius, outerRadius]. */
+  from: number
+  /** Outer edge, same scale. */
+  to: number
+  color: string
+  /** Peak opacity of the band. */
+  alpha: number
+  /** Edge softness as a fraction of the band width (0 = hard edge). */
+  soft?: number
+}
+
+/**
+ * Ring system: either a texture pair (Saturn) or a procedural radial
+ * profile of bands (thin, dark systems like Uranus and Neptune, for which
+ * no texture exists and none is needed).
+ */
+export type RingDef = {
   innerRadius: number
   outerRadius: number
-  /** Color/transmission map (jpg). */
-  textureUrl: string
-  /** Alpha map (greyscale) – white = opaque. */
-  alphaUrl?: string
   /** Extra tilt over the planet's axial tilt, in degrees. */
   tiltDeg?: number
   /** Multiplier on the alpha map. */
   opacity?: number
+} & (
+  | {
+      /** Color/transmission map (jpg). */
+      textureUrl: string
+      /** Alpha map (greyscale) – white = opaque. */
+      alphaUrl?: string
+      bands?: undefined
+    }
+  | {
+      textureUrl?: undefined
+      alphaUrl?: undefined
+      bands: RingBand[]
+    }
+)
+
+export interface AtmosphereDef {
+  /** Glow colour (scattered light at the limb). */
+  color: string
+  /** Overall brightness multiplier. Default 1. */
+  intensity?: number
+  /** Outer halo radius relative to the planet. Default 1.16. */
+  scale?: number
 }
 
 export interface MoonDef {
@@ -31,9 +68,9 @@ export interface MoonDef {
   radius: number
   /** Distance from the parent planet in scene units. */
   orbitRadius: number
-  /** Seconds per revolution around the parent. */
-  orbitPeriodSec: number
-  /** Initial phase, in radians. */
+  /** Real sidereal period in days; negative = retrograde. */
+  orbitPeriodDays: number
+  /** Initial phase, in radians (moon phases are not ephemeris-driven). */
   orbitInitialAngle: number
   /** Inclination relative to the parent's equator (degrees). */
   inclinationDeg?: number
@@ -51,16 +88,20 @@ export interface PlanetDef {
   cloudsUrl?: string
   /** Visual radius in scene units. */
   radius: number
+  /** Decorative orbit radius (not to scale). */
   orbitRadius: number
-  orbitPeriodSec: number
-  orbitInitialAngle: number
+  /** Mean orbital elements: the angle along the orbit is real for any date. */
+  elements: OrbitalElements
   axialTiltDeg: number
-  rotationPeriodSec: number
+  /** Real sidereal rotation period in days. */
+  rotationPeriodDays: number
   /**
    * Override the camera's focus distance. Defaults to a function of radius.
    */
   focusDistance?: number
   rings?: RingDef
+  /** Fresnel glow; omit for airless bodies. */
+  atmosphere?: AtmosphereDef
   moons?: MoonDef[]
   facts: PlanetFacts
   description: string
@@ -76,10 +117,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/mercurymap.jpg`,
     radius: 0.55,
     orbitRadius: 9,
-    orbitPeriodSec: 24,
-    orbitInitialAngle: Math.PI * 0.1,
+    elements: { L0: 252.2503235, Lrate: 149472.67411175, varpi: 77.45779628, e: 0.20563593 },
     axialTiltDeg: 0.03,
-    rotationPeriodSec: 14,
+    rotationPeriodDays: 58.646,
     facts: {
       diameter: '4 879 km',
       gravity: '3.7 m/s²',
@@ -99,10 +139,10 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/venusmap.jpg`,
     radius: 0.85,
     orbitRadius: 12.5,
-    orbitPeriodSec: 36,
-    orbitInitialAngle: Math.PI * 0.7,
+    elements: { L0: 181.9790995, Lrate: 58517.81538729, varpi: 131.60246718, e: 0.00677672 },
     axialTiltDeg: 177.4,
-    rotationPeriodSec: 32,
+    rotationPeriodDays: 243.02,
+    atmosphere: { color: '#ffe3a3', intensity: 1.1, scale: 1.2 },
     facts: {
       diameter: '12 104 km',
       gravity: '8.87 m/s²',
@@ -123,10 +163,9 @@ export const PLANETS: PlanetDef[] = [
     cloudsUrl: `${TEX}/earthcloudmap.jpg`,
     radius: 0.9,
     orbitRadius: 16,
-    orbitPeriodSec: 60,
-    orbitInitialAngle: Math.PI * 0.25,
+    elements: { L0: 100.46457166, Lrate: 35999.37244981, varpi: 102.93768193, e: 0.01671123 },
     axialTiltDeg: 23.5,
-    rotationPeriodSec: 6,
+    rotationPeriodDays: 0.99727,
     moons: [
       {
         id: 'moon',
@@ -135,11 +174,12 @@ export const PLANETS: PlanetDef[] = [
         textureUrl: `${TEX}/moonmap1k.jpg`,
         radius: 0.24,
         orbitRadius: 1.7,
-        orbitPeriodSec: 8,
+        orbitPeriodDays: 27.32,
         orbitInitialAngle: 0,
         inclinationDeg: 5.1,
       },
     ],
+    atmosphere: { color: '#5aa9ff', intensity: 1.25, scale: 1.18 },
     facts: {
       diameter: '12 742 km',
       gravity: '9.807 m/s²',
@@ -159,10 +199,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/marsmap1k.jpg`,
     radius: 0.7,
     orbitRadius: 20,
-    orbitPeriodSec: 90,
-    orbitInitialAngle: Math.PI * 1.3,
+    elements: { L0: -4.55343205, Lrate: 19140.30268499, varpi: -23.94362959, e: 0.0933941 },
     axialTiltDeg: 25.2,
-    rotationPeriodSec: 6.2,
+    rotationPeriodDays: 1.02596,
     moons: [
       {
         id: 'phobos',
@@ -170,7 +209,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#7e6b5a',
         radius: 0.09,
         orbitRadius: 1.05,
-        orbitPeriodSec: 3,
+        orbitPeriodDays: 0.319,
         orbitInitialAngle: 0,
       },
       {
@@ -179,10 +218,11 @@ export const PLANETS: PlanetDef[] = [
         color: '#9b8a78',
         radius: 0.07,
         orbitRadius: 1.45,
-        orbitPeriodSec: 5.5,
+        orbitPeriodDays: 1.263,
         orbitInitialAngle: Math.PI,
       },
     ],
+    atmosphere: { color: '#ffb08a', intensity: 0.55, scale: 1.1 },
     facts: {
       diameter: '6 779 km',
       gravity: '3.71 m/s²',
@@ -202,10 +242,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/jupitermap.jpg`,
     radius: 2.6,
     orbitRadius: 27,
-    orbitPeriodSec: 200,
-    orbitInitialAngle: Math.PI * 1.8,
+    elements: { L0: 34.39644051, Lrate: 3034.74612775, varpi: 14.72847983, e: 0.04838624 },
     axialTiltDeg: 3.1,
-    rotationPeriodSec: 4.2,
+    rotationPeriodDays: 0.41354,
     focusDistance: 8.5,
     moons: [
       {
@@ -214,7 +253,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#f4d96a',
         radius: 0.16,
         orbitRadius: 3.2,
-        orbitPeriodSec: 4,
+        orbitPeriodDays: 1.769,
         orbitInitialAngle: 0,
       },
       {
@@ -223,7 +262,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#e9d3a8',
         radius: 0.15,
         orbitRadius: 3.9,
-        orbitPeriodSec: 6,
+        orbitPeriodDays: 3.551,
         orbitInitialAngle: Math.PI * 0.5,
       },
       {
@@ -232,7 +271,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#b9a489',
         radius: 0.22,
         orbitRadius: 4.7,
-        orbitPeriodSec: 9,
+        orbitPeriodDays: 7.155,
         orbitInitialAngle: Math.PI,
       },
       {
@@ -241,10 +280,11 @@ export const PLANETS: PlanetDef[] = [
         color: '#6e6354',
         radius: 0.2,
         orbitRadius: 5.6,
-        orbitPeriodSec: 13,
+        orbitPeriodDays: 16.69,
         orbitInitialAngle: Math.PI * 1.5,
       },
     ],
+    atmosphere: { color: '#f3d7a8', intensity: 0.7, scale: 1.1 },
     facts: {
       diameter: '139 820 km',
       gravity: '24.79 m/s²',
@@ -264,10 +304,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/saturnmap.jpg`,
     radius: 2.2,
     orbitRadius: 36,
-    orbitPeriodSec: 300,
-    orbitInitialAngle: Math.PI * 0.4,
+    elements: { L0: 49.95424423, Lrate: 1222.49362201, varpi: 92.59887831, e: 0.05386179 },
     axialTiltDeg: 26.7,
-    rotationPeriodSec: 4.6,
+    rotationPeriodDays: 0.44401,
     focusDistance: 9,
     rings: {
       innerRadius: 2.7,
@@ -283,7 +322,7 @@ export const PLANETS: PlanetDef[] = [
         color: '#d99a52',
         radius: 0.22,
         orbitRadius: 5.4,
-        orbitPeriodSec: 11,
+        orbitPeriodDays: 15.95,
         orbitInitialAngle: 0,
       },
       {
@@ -292,10 +331,11 @@ export const PLANETS: PlanetDef[] = [
         color: '#f0f0f5',
         radius: 0.09,
         orbitRadius: 4.1,
-        orbitPeriodSec: 5,
+        orbitPeriodDays: 1.37,
         orbitInitialAngle: Math.PI * 0.6,
       },
     ],
+    atmosphere: { color: '#fbe8b8', intensity: 0.6, scale: 1.09 },
     facts: {
       diameter: '116 460 km',
       gravity: '10.44 m/s²',
@@ -315,10 +355,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/uranusmap.jpg`,
     radius: 1.5,
     orbitRadius: 45,
-    orbitPeriodSec: 420,
-    orbitInitialAngle: Math.PI * 1.2,
+    elements: { L0: 313.23810451, Lrate: 428.48202785, varpi: 170.9542763, e: 0.04725744 },
     axialTiltDeg: 97.8,
-    rotationPeriodSec: 5,
+    rotationPeriodDays: 0.71833,
     focusDistance: 6.5,
     moons: [
       {
@@ -327,10 +366,29 @@ export const PLANETS: PlanetDef[] = [
         color: '#a99b8b',
         radius: 0.1,
         orbitRadius: 2.8,
-        orbitPeriodSec: 8,
+        orbitPeriodDays: 8.706,
         orbitInitialAngle: 0,
       },
     ],
+    // Thirteen narrow, dark rings between 1.64 and 2.0 radii; epsilon is
+    // by far the brightest. Radii are real, widths exaggerated to be seen.
+    rings: {
+      innerRadius: 2.4,
+      outerRadius: 3.08,
+      bands: [
+        { from: 0.076, to: 0.088, color: '#a9adb8', alpha: 0.28, soft: 0.4 },
+        { from: 0.109, to: 0.121, color: '#a9adb8', alpha: 0.28, soft: 0.4 },
+        { from: 0.14, to: 0.152, color: '#a9adb8', alpha: 0.3, soft: 0.4 },
+        { from: 0.322, to: 0.34, color: '#b4b8c4', alpha: 0.5, soft: 0.35 },
+        { from: 0.401, to: 0.419, color: '#b4b8c4', alpha: 0.5, soft: 0.35 },
+        { from: 0.51, to: 0.524, color: '#a9adb8', alpha: 0.3, soft: 0.4 },
+        { from: 0.573, to: 0.587, color: '#b4b8c4', alpha: 0.45, soft: 0.35 },
+        { from: 0.655, to: 0.669, color: '#b4b8c4', alpha: 0.45, soft: 0.35 },
+        { from: 0.783, to: 0.797, color: '#a9adb8', alpha: 0.18, soft: 0.5 },
+        { from: 0.88, to: 0.912, color: '#c8ccd8', alpha: 0.8, soft: 0.3 },
+      ],
+    },
+    atmosphere: { color: '#9ff2ff', intensity: 1.0, scale: 1.14 },
     facts: {
       diameter: '50 724 km',
       gravity: '8.69 m/s²',
@@ -340,7 +398,7 @@ export const PLANETS: PlanetDef[] = [
       distanceFromSun: '2 872.5 millones de km',
     },
     description:
-      'Único planeta que rota tumbado sobre su lado, con un eje de rotación inclinado casi 98°. Su atmósfera de hidrógeno, helio y metano da el característico tono cian. Posee un sistema de anillos finos y oscuros.',
+      'Único planeta que rota tumbado sobre su lado, con un eje de rotación inclinado casi 98°. Su atmósfera de hidrógeno, helio y metano da el característico tono cian. Sus trece anillos, finos y oscuros, giran casi perpendiculares a su órbita.',
   },
   {
     id: 'neptune',
@@ -350,10 +408,9 @@ export const PLANETS: PlanetDef[] = [
     textureUrl: `${TEX}/neptunemap.jpg`,
     radius: 1.45,
     orbitRadius: 53,
-    orbitPeriodSec: 540,
-    orbitInitialAngle: Math.PI * 0.55,
+    elements: { L0: -55.12002969, Lrate: 218.45945325, varpi: 44.96476227, e: 0.00859048 },
     axialTiltDeg: 28.3,
-    rotationPeriodSec: 5.2,
+    rotationPeriodDays: 0.67125,
     focusDistance: 6.5,
     moons: [
       {
@@ -362,10 +419,24 @@ export const PLANETS: PlanetDef[] = [
         color: '#cfd6ce',
         radius: 0.12,
         orbitRadius: 3,
-        orbitPeriodSec: 9,
+        orbitPeriodDays: -5.877,
         orbitInitialAngle: Math.PI * 0.3,
       },
     ],
+    // Galle (broad, faint), Le Verrier, Lassell sheet, Arago and Adams
+    // (the brightest, with its clumpy arcs) at their real radii.
+    rings: {
+      innerRadius: 2.39,
+      outerRadius: 3.77,
+      bands: [
+        { from: 0.042, to: 0.116, color: '#d8d2c8', alpha: 0.1, soft: 0.5 },
+        { from: 0.518, to: 0.534, color: '#e0dad0', alpha: 0.5, soft: 0.35 },
+        { from: 0.534, to: 0.695, color: '#d8d2c8', alpha: 0.07, soft: 0.3 },
+        { from: 0.69, to: 0.7, color: '#e0dad0', alpha: 0.25, soft: 0.4 },
+        { from: 0.928, to: 0.946, color: '#ece6dc', alpha: 0.65, soft: 0.3 },
+      ],
+    },
+    atmosphere: { color: '#6f8cff', intensity: 1.1, scale: 1.15 },
     facts: {
       diameter: '49 244 km',
       gravity: '11.15 m/s²',
@@ -375,7 +446,7 @@ export const PLANETS: PlanetDef[] = [
       distanceFromSun: '4 495 millones de km',
     },
     description:
-      'El planeta más lejano del sistema solar, con vientos que superan los 2 100 km/h, los más rápidos jamás registrados. Su intenso azul proviene del metano atmosférico. Tritón, su mayor luna, orbita en sentido retrógrado.',
+      'El planeta más lejano del sistema solar, con vientos que superan los 2 100 km/h, los más rápidos jamás registrados. Su intenso azul proviene del metano atmosférico. Tiene cinco anillos tenues de polvo y Tritón, su mayor luna, orbita en sentido retrógrado.',
   },
 ]
 

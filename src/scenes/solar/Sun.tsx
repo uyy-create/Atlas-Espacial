@@ -1,37 +1,89 @@
-import { useEffect, useRef } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
-import { useTexture } from '@react-three/drei'
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { enhanceTextureQuality } from '../../components/textureQuality'
+import {
+  SUN_CORONA_FRAG,
+  SUN_CORONA_VERT,
+  SUN_SURFACE_FRAG,
+  SUN_SURFACE_VERT,
+} from './sunShaders'
 
 const SUN_RADIUS = 3.6
+/** Surface output is not tone-mapped, so >1 feeds the bloom pass. */
+const SUN_BRIGHTNESS = 1.35
+const LIGHT_BASE_INTENSITY = 2.4
+
+const skipRaycast = () => null
 
 export function Sun() {
-  const sunMap = useTexture('/textures/sunmap.jpg') as THREE.Texture
-  const gl = useThree((s) => s.gl)
-  const maxAnisotropy = gl.capabilities.getMaxAnisotropy()
-
   const coreRef = useRef<THREE.Mesh>(null)
-  const haloRef = useRef<THREE.Mesh>(null)
+  const surfaceMaterialRef = useRef<THREE.ShaderMaterial>(null)
+  const coronaMaterialRef = useRef<THREE.ShaderMaterial>(null)
+  const glowMaterialRef = useRef<THREE.ShaderMaterial>(null)
+  const lightRef = useRef<THREE.PointLight>(null)
 
-  useEffect(() => {
-    enhanceTextureQuality(sunMap, maxAnisotropy, 'color')
-  }, [sunMap, maxAnisotropy])
+  const surfaceUniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uBrightness: { value: SUN_BRIGHTNESS },
+      uColorDeep: { value: new THREE.Color('#c4400a') },
+      uColorMid: { value: new THREE.Color('#ff9a2e') },
+      uColorHot: { value: new THREE.Color('#fff3c4') },
+    }),
+    [],
+  )
 
-  useFrame((_, delta) => {
-    if (coreRef.current) coreRef.current.rotation.y += delta * 0.05
-    if (haloRef.current) {
-      const t = performance.now() * 0.0008
-      const pulse = 1 + Math.sin(t) * 0.018
-      haloRef.current.scale.setScalar(pulse)
+  // Tight, flickering corona hugging the disc.
+  const coronaUniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uIntensity: { value: 1.1 },
+      uPower: { value: 2.6 },
+      uFlare: { value: 0.55 },
+      uColorInner: { value: new THREE.Color('#ffd27a') },
+      uColorOuter: { value: new THREE.Color('#ff5a1a') },
+    }),
+    [],
+  )
+
+  // Wide, faint glow that fades into the background.
+  const glowUniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uIntensity: { value: 0.28 },
+      uPower: { value: 4.5 },
+      uFlare: { value: 0.25 },
+      uColorInner: { value: new THREE.Color('#ffb060') },
+      uColorOuter: { value: new THREE.Color('#ff6a2a') },
+    }),
+    [],
+  )
+
+  useFrame((state, delta) => {
+    const t = state.clock.elapsedTime
+    if (coreRef.current) coreRef.current.rotation.y += delta * 0.03
+    if (surfaceMaterialRef.current) {
+      surfaceMaterialRef.current.uniforms.uTime.value = t
+    }
+    if (coronaMaterialRef.current) {
+      coronaMaterialRef.current.uniforms.uTime.value = t
+    }
+    if (glowMaterialRef.current) {
+      glowMaterialRef.current.uniforms.uTime.value = t
+    }
+    if (lightRef.current) {
+      // Barely-there flicker so the lighting on the planets feels alive.
+      lightRef.current.intensity =
+        LIGHT_BASE_INTENSITY + Math.sin(t * 1.7) * 0.05 + Math.sin(t * 4.3) * 0.03
     }
   })
 
   return (
     <group>
       <pointLight
+        ref={lightRef}
         position={[0, 0, 0]}
-        intensity={2.4}
+        intensity={LIGHT_BASE_INTENSITY}
         distance={500}
         decay={1.4}
         color="#ffe7b3"
@@ -42,36 +94,44 @@ export function Sun() {
         position={[0, 1, 0]}
       />
 
-      <mesh ref={coreRef}>
+      <mesh ref={coreRef} raycast={skipRaycast}>
+        <sphereGeometry args={[SUN_RADIUS, 96, 96]} />
+        <shaderMaterial
+          ref={surfaceMaterialRef}
+          uniforms={surfaceUniforms}
+          vertexShader={SUN_SURFACE_VERT}
+          fragmentShader={SUN_SURFACE_FRAG}
+          toneMapped={false}
+        />
+      </mesh>
+
+      <mesh scale={1.45} raycast={skipRaycast}>
         <sphereGeometry args={[SUN_RADIUS, 64, 64]} />
-        <meshBasicMaterial
-          map={sunMap}
-          color="#ffe8b8"
+        <shaderMaterial
+          ref={coronaMaterialRef}
+          uniforms={coronaUniforms}
+          vertexShader={SUN_CORONA_VERT}
+          fragmentShader={SUN_CORONA_FRAG}
+          transparent
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+          side={THREE.BackSide}
           toneMapped={false}
         />
       </mesh>
 
-      <mesh ref={haloRef} scale={1.14}>
+      <mesh scale={2.6} raycast={skipRaycast}>
         <sphereGeometry args={[SUN_RADIUS, 48, 48]} />
-        <meshBasicMaterial
-          color="#ff9d4a"
+        <shaderMaterial
+          ref={glowMaterialRef}
+          uniforms={glowUniforms}
+          vertexShader={SUN_CORONA_VERT}
+          fragmentShader={SUN_CORONA_FRAG}
           transparent
-          opacity={0.1}
-          toneMapped={false}
-          blending={THREE.AdditiveBlending}
           depthWrite={false}
-        />
-      </mesh>
-
-      <mesh scale={1.4}>
-        <sphereGeometry args={[SUN_RADIUS, 32, 32]} />
-        <meshBasicMaterial
-          color="#ff7a2a"
-          transparent
-          opacity={0.035}
-          toneMapped={false}
           blending={THREE.AdditiveBlending}
-          depthWrite={false}
+          side={THREE.BackSide}
+          toneMapped={false}
         />
       </mesh>
     </group>

@@ -4,14 +4,20 @@ import { SolarScene } from './experience'
 import { WarpFadeOverlay } from './transitions/warp/WarpFadeOverlay'
 import { PlanetInfoPanel } from './ui/PlanetInfoPanel'
 import { Navigator } from './ui/Navigator'
+import { LoadingScreen } from './ui/LoadingScreen'
+import { TimeControls } from './ui/TimeControls'
 import { useSolarStore } from './store/useSolarStore'
+import { useUrlSync } from './routing/useUrlSync'
 
 function App() {
+  const entered = useSolarStore((s) => s.entered)
   const mode = useSolarStore((s) => s.mode)
   const view = useSolarStore((s) => s.view)
   const unfocus = useSolarStore((s) => s.unfocus)
   const focusNeighbor = useSolarStore((s) => s.focusNeighbor)
   const navigateToView = useSolarStore((s) => s.navigateToView)
+
+  useUrlSync()
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -43,8 +49,9 @@ function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [unfocus, focusNeighbor, navigateToView])
 
-  const hint =
-    view === 'solar' && mode === 'overview'
+  const hint = !entered
+    ? null
+    : view === 'solar' && mode === 'overview'
       ? 'Pulsa sobre un planeta para explorarlo'
       : view === 'galaxy' && mode !== 'warping'
         ? 'Pulsa un punto brillante: Sistema Solar o Agujero negro'
@@ -79,6 +86,8 @@ function App() {
       </AnimatePresence>
 
       <PlanetInfoPanel />
+      <TimeControls />
+      <LoadingScreen />
     </div>
   )
 }

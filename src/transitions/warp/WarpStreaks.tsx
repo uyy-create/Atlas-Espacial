@@ -6,10 +6,8 @@ import {
   BLACK_HOLE_SYSTEM_GALAXY_MARKER,
   SOLAR_SYSTEM_GALAXY_MARKER,
 } from '../../scenes/galaxy/galaxyMarkers'
+import { createRandom } from '../../utils/random'
 import { computeWarpStreakIntensity } from './blackHoleTransition'
-import { warpIntensityCurve } from './warpScaleCurves'
-
-export { warpIntensityCurve }
 
 function warpStreakAnchor(
   warpTargetView: ViewId | null,
@@ -28,6 +26,38 @@ function warpStreakAnchor(
 const COUNT = 900
 const TUBE_RADIUS = 38
 const DEPTH = 220
+const STREAK_SEED = 0x57415250
+
+/** Streak head positions, scattered in a tube in front of the camera. */
+function createStreakCenters(): Float32Array {
+  const rand = createRandom(STREAK_SEED)
+  const centers = new Float32Array(COUNT * 3)
+  for (let i = 0; i < COUNT; i++) {
+    const r = 1 + Math.pow(rand(), 0.6) * TUBE_RADIUS
+    const theta = rand() * Math.PI * 2
+    centers[i * 3 + 0] = Math.cos(theta) * r
+    centers[i * 3 + 1] = Math.sin(theta) * r
+    centers[i * 3 + 2] = -rand() * DEPTH - 4
+  }
+  return centers
+}
+
+/** Line segment endpoints (2 vertices per streak) for the initial upload. */
+function centersToPositions(centers: Float32Array): Float32Array {
+  const positions = new Float32Array(COUNT * 6)
+  for (let i = 0; i < COUNT; i++) {
+    const x = centers[i * 3 + 0]
+    const y = centers[i * 3 + 1]
+    const z = centers[i * 3 + 2]
+    positions[i * 6 + 0] = x
+    positions[i * 6 + 1] = y
+    positions[i * 6 + 2] = z
+    positions[i * 6 + 3] = x
+    positions[i * 6 + 4] = y
+    positions[i * 6 + 5] = z - 0.5
+  }
+  return positions
+}
 
 export function WarpStreaks() {
   const groupRef = useRef<THREE.Group>(null)
@@ -38,31 +68,13 @@ export function WarpStreaks() {
   const tmpRight = useRef(new THREE.Vector3())
   const tmpUp = useRef(new THREE.Vector3())
 
-  const buffer = useMemo(() => {
-    const positions = new Float32Array(COUNT * 6)
-    const centers = new Float32Array(COUNT * 3)
-
-    for (let i = 0; i < COUNT; i++) {
-      const r = 1 + Math.pow(Math.random(), 0.6) * TUBE_RADIUS
-      const theta = Math.random() * Math.PI * 2
-      const x = Math.cos(theta) * r
-      const y = Math.sin(theta) * r
-      const z = -Math.random() * DEPTH - 4
-
-      centers[i * 3 + 0] = x
-      centers[i * 3 + 1] = y
-      centers[i * 3 + 2] = z
-
-      positions[i * 6 + 0] = x
-      positions[i * 6 + 1] = y
-      positions[i * 6 + 2] = z
-      positions[i * 6 + 3] = x
-      positions[i * 6 + 4] = y
-      positions[i * 6 + 5] = z - 0.5
-    }
-
-    return { positions, centers }
-  }, [])
+  const positions = useMemo(
+    () => centersToPositions(createStreakCenters()),
+    [],
+  )
+  // Advanced every frame during a warp, so it lives in a ref, not in a memo.
+  // Same seed as `positions`, so both start in sync.
+  const centersRef = useRef<Float32Array | null>(null)
 
   useFrame((_, delta) => {
     const { mode, view, warpTargetView, warpProgress } =
@@ -111,7 +123,8 @@ export function WarpStreaks() {
     const geo = lineRef.current.geometry
     const posAttr = geo.attributes.position as THREE.BufferAttribute
     const data = posAttr.array as Float32Array
-    const centers = buffer.centers
+    if (centersRef.current === null) centersRef.current = createStreakCenters()
+    const centers = centersRef.current
 
     for (let i = 0; i < COUNT; i++) {
       let zc = centers[i * 3 + 2] + speed * delta
@@ -146,7 +159,7 @@ export function WarpStreaks() {
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
-            args={[buffer.positions, 3]}
+            args={[positions, 3]}
           />
         </bufferGeometry>
         <lineBasicMaterial

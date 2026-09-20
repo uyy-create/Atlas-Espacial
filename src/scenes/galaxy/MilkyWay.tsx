@@ -1,8 +1,11 @@
 import { useMemo, useRef, type MutableRefObject } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import { createRandom } from '../../utils/random'
 
 const PARTICLE_COUNT = 52000
+/** Fixed seed: the galaxy must look the same every time it is mounted. */
+const GALAXY_SEED = 0x4d494c4b
 const GALAXY_RADIUS = 80
 const ARMS = 4
 const DISC_THICKNESS = 0.3
@@ -79,21 +82,49 @@ function makeHaloTexture(): THREE.CanvasTexture {
   return texture
 }
 
+const PARTICLE_VERT = /* glsl */ `
+  attribute float aSize;
+  uniform float uPixelRatio;
+  uniform float uSize;
+  varying vec3 vColor;
+  void main() {
+    vColor = color;
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * mvPosition;
+    gl_PointSize = aSize * uSize * uPixelRatio / -mvPosition.z;
+    gl_PointSize = clamp(gl_PointSize, 1.0, 60.0);
+  }
+`
+
+const PARTICLE_FRAG = /* glsl */ `
+  uniform sampler2D uTexture;
+  uniform float uOpacity;
+  varying vec3 vColor;
+  void main() {
+    vec4 tex = texture2D(uTexture, gl_PointCoord);
+    if (tex.a < 0.02) discard;
+    gl_FragColor = vec4(vColor * tex.rgb, tex.a * uOpacity);
+  }
+`
+
 export function MilkyWay({
   opacityRef,
 }: {
   opacityRef?: MutableRefObject<number>
 }) {
   const spinRef = useRef<THREE.Group>(null)
-  const haloRef = useRef<THREE.Mesh>(null)
+  const haloMaterialRef = useRef<THREE.MeshBasicMaterial>(null)
+  const pointsMaterialRef = useRef<THREE.ShaderMaterial>(null)
+  const dpr = useThree((s) => s.viewport.dpr)
 
   const haloTexture = useMemo(() => makeHaloTexture(), [])
 
-  const { geometry, material } = useMemo(() => {
+  const { geometry, uniforms } = useMemo(() => {
     const positions = new Float32Array(PARTICLE_COUNT * 3)
     const colors = new Float32Array(PARTICLE_COUNT * 3)
     const sizes = new Float32Array(PARTICLE_COUNT)
 
+    const rand = createRandom(GALAXY_SEED)
     const tmpColor = new THREE.Color()
 
     // Break perfect rotational symmetry between arms with small random
@@ -101,11 +132,11 @@ export function MilkyWay({
     const armOffsets = new Float32Array(ARMS)
     for (let a = 0; a < ARMS; a++) {
       armOffsets[a] =
-        (a / ARMS) * Math.PI * 2 + (Math.random() - 0.5) * 0.55
+        (a / ARMS) * Math.PI * 2 + (rand() - 0.5) * 0.55
     }
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const popRoll = Math.random()
+      const popRoll = rand()
       let population: 'bulge' | 'cloud' | 'arm'
       if (popRoll < BULGE_RATIO) {
         population = 'bulge'
@@ -119,31 +150,31 @@ export function MilkyWay({
       let angle: number
 
       if (population === 'bulge') {
-        radius = Math.pow(Math.random(), 2) * GALAXY_RADIUS * 0.2
-        angle = Math.random() * Math.PI * 2
+        radius = Math.pow(rand(), 2) * GALAXY_RADIUS * 0.2
+        angle = rand() * Math.PI * 2
       } else if (population === 'cloud') {
         // Random anywhere in the disc, biased slightly toward center.
-        radius = Math.pow(Math.random(), 0.55) * GALAXY_RADIUS
-        angle = Math.random() * Math.PI * 2
+        radius = Math.pow(rand(), 0.55) * GALAXY_RADIUS
+        angle = rand() * Math.PI * 2
       } else {
         radius =
-          Math.pow(Math.random(), 0.55) * GALAXY_RADIUS +
-          (Math.random() - 0.5) * ARM_RADIAL_SCATTER * GALAXY_RADIUS * 0.06
+          Math.pow(rand(), 0.55) * GALAXY_RADIUS +
+          (rand() - 0.5) * ARM_RADIAL_SCATTER * GALAXY_RADIUS * 0.06
         const branchIndex = i % ARMS
         const branchAngle = armOffsets[branchIndex]
         // Per-particle jitter on the spin so the arm itself isn't a perfect
         // mathematical curve.
-        const growthJitter = 0.9 + Math.random() * 0.2
+        const growthJitter = 0.9 + rand() * 0.2
         const spinAngle =
           Math.log(1 + radius * SPIRAL_GROWTH * growthJitter) *
           SPIRAL_TIGHTNESS
         // Wide angular scatter -> thick arm. Power 1.4 keeps most particles
         // near the arm centre but allows a soft halo around it.
         const angularJitter =
-          (Math.random() - 0.5) *
+          (rand() - 0.5) *
           2 *
           ARM_ANGULAR_SCATTER *
-          Math.pow(Math.random(), 1.4)
+          Math.pow(rand(), 1.4)
         angle = branchAngle + spinAngle + angularJitter
       }
 
@@ -153,20 +184,20 @@ export function MilkyWay({
       const scatterStrength = baseScatter + radialFraction * 0.2
 
       const sx =
-        Math.pow(Math.random(), 3) *
-        (Math.random() < 0.5 ? 1 : -1) *
+        Math.pow(rand(), 3) *
+        (rand() < 0.5 ? 1 : -1) *
         scatterStrength *
         radius *
         0.22
       const sz =
-        Math.pow(Math.random(), 3) *
-        (Math.random() < 0.5 ? 1 : -1) *
+        Math.pow(rand(), 3) *
+        (rand() < 0.5 ? 1 : -1) *
         scatterStrength *
         radius *
         0.22
       const sy =
-        Math.pow(Math.random(), 3) *
-        (Math.random() < 0.5 ? 1 : -1) *
+        Math.pow(rand(), 3) *
+        (rand() < 0.5 ? 1 : -1) *
         (population === 'bulge'
           ? radius * 0.4
           : radius * DISC_THICKNESS *
@@ -198,7 +229,7 @@ export function MilkyWay({
           : population === 'cloud'
             ? 0.45 + (1 - t) * 0.8
             : 0.55 + (1 - t) * 1.1
-      sizes[i] = baseSize * (0.65 + Math.random() * 0.7)
+      sizes[i] = baseSize * (0.65 + rand() * 0.7)
     }
 
     const geo = new THREE.BufferGeometry()
@@ -208,43 +239,15 @@ export function MilkyWay({
 
     const particleTexture = makeParticleTexture()
 
-    const mat = new THREE.ShaderMaterial({
+    return {
+      geometry: geo,
       uniforms: {
-        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+        uPixelRatio: { value: 1 },
         uSize: { value: 44 },
         uTexture: { value: particleTexture },
         uOpacity: { value: 1.0 },
       },
-      vertexShader: /* glsl */ `
-        attribute float aSize;
-        uniform float uPixelRatio;
-        uniform float uSize;
-        varying vec3 vColor;
-        void main() {
-          vColor = color;
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_Position = projectionMatrix * mvPosition;
-          gl_PointSize = aSize * uSize * uPixelRatio / -mvPosition.z;
-          gl_PointSize = clamp(gl_PointSize, 1.0, 60.0);
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        uniform sampler2D uTexture;
-        uniform float uOpacity;
-        varying vec3 vColor;
-        void main() {
-          vec4 tex = texture2D(uTexture, gl_PointCoord);
-          if (tex.a < 0.02) discard;
-          gl_FragColor = vec4(vColor * tex.rgb, tex.a * uOpacity);
-        }
-      `,
-      transparent: true,
-      depthWrite: false,
-      vertexColors: true,
-      blending: THREE.AdditiveBlending,
-    })
-
-    return { geometry: geo, material: mat }
+    }
   }, [])
 
   useFrame((_, delta) => {
@@ -252,24 +255,24 @@ export function MilkyWay({
       spinRef.current.rotation.y += delta * 0.012
     }
     const op = opacityRef?.current ?? 1
-    if (material.uniforms.uOpacity) {
-      material.uniforms.uOpacity.value = op
+    const pointsMat = pointsMaterialRef.current
+    if (pointsMat) {
+      pointsMat.uniforms.uOpacity.value = op
+      pointsMat.uniforms.uPixelRatio.value = Math.min(dpr, 2)
     }
-    const halo = haloRef.current
-    if (halo) {
-      const mat = halo.material as THREE.MeshBasicMaterial
-      mat.opacity = 0.55 * op
-    }
+    const haloMat = haloMaterialRef.current
+    if (haloMat) haloMat.opacity = 0.55 * op
   })
 
   return (
     <group rotation={[-0.04, 0, 0.07]}>
       <group ref={spinRef}>
-        <mesh ref={haloRef} rotation={[-Math.PI / 2, 0, 0]} renderOrder={-1}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={-1}>
           <planeGeometry
             args={[GALAXY_RADIUS * 2.6, GALAXY_RADIUS * 2.6]}
           />
           <meshBasicMaterial
+            ref={haloMaterialRef}
             map={haloTexture}
             transparent
             opacity={0.55}
@@ -278,7 +281,18 @@ export function MilkyWay({
             toneMapped={true}
           />
         </mesh>
-        <points geometry={geometry} material={material} />
+        <points geometry={geometry}>
+          <shaderMaterial
+            ref={pointsMaterialRef}
+            uniforms={uniforms}
+            vertexShader={PARTICLE_VERT}
+            fragmentShader={PARTICLE_FRAG}
+            transparent
+            depthWrite={false}
+            vertexColors
+            blending={THREE.AdditiveBlending}
+          />
+        </points>
       </group>
     </group>
   )
