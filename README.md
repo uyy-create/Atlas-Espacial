@@ -29,6 +29,8 @@ Abre la URL que muestra Vite (normalmente `http://localhost:5173`).
 | Pausar / reanudar el tiempo     | `Espacio` o el botón de la barra inferior     |
 | Velocidad y fecha               | Barra inferior (1 día/s … 6 meses/s, «Hoy»)   |
 | Cambiar de vista                | Navigator (arriba a la izquierda)             |
+| Tour guiado                     | Botón arriba a la derecha · `←` `→` · `Esc`   |
+| Ir a una fecha                  | Icono de calendario en la barra inferior      |
 
 Las posiciones de los planetas son reales para la fecha simulada
 (elementos orbitales medios del JPL); los radios de las órbitas y los
@@ -39,7 +41,7 @@ tamaños no están a escala.
 La URL refleja el estado y se puede compartir:
 
 - `?view=galaxy` · `?view=blackHole`
-- `?planet=mars` — entra directamente enfocando ese planeta
+- `?planet=mars` — entra directamente enfocando ese planeta (o luna: `?planet=titan`)
 - `?planet=jupiter&date=2030-06-15` — además, arranca en pausa en esa fecha
   (`date` solo aparece en la URL mientras la simulación está pausada)
 
@@ -52,12 +54,13 @@ La URL refleja el estado y se puede compartir:
 
 ## Estructura
 
-- `src/scenes/solar` — Sol, planetas, lunas, anillos y atmósferas.
+- `src/scenes/solar` — Sol, planetas, lunas, anillos, atmósferas, luces nocturnas y cinturón de asteroides.
 - `src/scenes/galaxy` — Vía Láctea de partículas y marcadores de destino.
 - `src/scenes/black-hole` — agujero negro raymarched (ajustes en `blackHoleRaymarchShader.ts`).
 - `src/simulation` — efemérides (posiciones reales por fecha) y reloj simulado.
 - `src/transitions` — cámara (foco, órbita libre, intro) y transición warp entre vistas.
 - `src/routing` — estado compartible en la URL.
+- `src/tour` — pasos y controlador del tour guiado.
 - `src/store/useSolarStore.ts` — máquina de estados (vista, foco, warp). En desarrollo se expone como `window.__solarStore` para depurar desde la consola.
 - `src/ui` — pantalla de carga, navegador de vistas y panel de información.
 

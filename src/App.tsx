@@ -6,7 +6,10 @@ import { PlanetInfoPanel } from './ui/PlanetInfoPanel'
 import { Navigator } from './ui/Navigator'
 import { LoadingScreen } from './ui/LoadingScreen'
 import { TimeControls } from './ui/TimeControls'
+import { TourButton, TourOverlay } from './ui/TourOverlay'
+import { TourController } from './tour/TourController'
 import { useSolarStore } from './store/useSolarStore'
+import { useTourStore } from './store/useTourStore'
 import { useUrlSync } from './routing/useUrlSync'
 
 function App() {
@@ -16,11 +19,22 @@ function App() {
   const unfocus = useSolarStore((s) => s.unfocus)
   const focusNeighbor = useSolarStore((s) => s.focusNeighbor)
   const navigateToView = useSolarStore((s) => s.navigateToView)
+  const tourActive = useTourStore((s) => s.active)
 
   useUrlSync()
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // While the tour runs, the keys drive the tour instead of the scene.
+      const tour = useTourStore.getState()
+      if (tour.active) {
+        if (e.key === 'Escape') tour.stop()
+        else if (e.key === 'ArrowRight') tour.next()
+        else if (e.key === 'ArrowLeft') tour.prev()
+        else return
+        e.preventDefault()
+        return
+      }
       if (e.key === 'Escape') {
         const v = useSolarStore.getState().view
         if (v === 'galaxy') {
@@ -49,7 +63,7 @@ function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [unfocus, focusNeighbor, navigateToView])
 
-  const hint = !entered
+  const hint = !entered || tourActive
     ? null
     : view === 'solar' && mode === 'overview'
       ? 'Pulsa sobre un planeta para explorarlo'
@@ -66,6 +80,7 @@ function App() {
 
       <header className="pointer-events-none absolute left-0 top-0 z-10 flex w-full items-start justify-between px-8 py-6">
         <Navigator />
+        <TourButton />
       </header>
 
       <AnimatePresence>
@@ -87,6 +102,8 @@ function App() {
 
       <PlanetInfoPanel />
       <TimeControls />
+      <TourOverlay />
+      <TourController />
       <LoadingScreen />
     </div>
   )

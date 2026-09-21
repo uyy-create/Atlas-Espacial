@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { julianDayToDate } from '../simulation/ephemeris'
 import { useSolarStore } from '../store/useSolarStore'
 import { TIME_SPEEDS, useTimeStore } from '../store/useTimeStore'
+import { useTourStore } from '../store/useTourStore'
 
 const DATE_POLL_MS = 250
 /** Validity range of the mean orbital elements. */
@@ -19,9 +20,12 @@ const isTypingTarget = (target: EventTarget | null) => {
 }
 
 export function TimeControls() {
-  const visible = useSolarStore(
+  const inSolarView = useSolarStore(
     (s) => s.entered && s.view === 'solar' && s.mode !== 'warping',
   )
+  // The tour card takes this corner while it runs.
+  const tourActive = useTourStore((s) => s.active)
+  const visible = inSolarView && !tourActive
   const paused = useTimeStore((s) => s.paused)
   const speedId = useTimeStore((s) => s.speedId)
   const togglePaused = useTimeStore((s) => s.togglePaused)
