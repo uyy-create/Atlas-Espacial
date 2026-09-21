@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
+import { getParentPlanetId } from '../../data/planets'
 import { useSolarStore } from '../../store/useSolarStore'
 
 interface OrbitProps {
@@ -9,8 +10,9 @@ interface OrbitProps {
 }
 
 export function Orbit({ radius, segments = 256, planetId }: OrbitProps) {
-  const focusedId = useSolarStore((s) => s.focusedId)
-  const hoveredId = useSolarStore((s) => s.hoveredId)
+  // A focused or hovered moon lights up its planet's orbit.
+  const focusedId = useSolarStore((s) => getParentPlanetId(s.focusedId))
+  const hoveredId = useSolarStore((s) => getParentPlanetId(s.hoveredId))
 
   const geometry = useMemo(() => {
     const points: THREE.Vector3[] = []

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { gsap } from 'gsap'
-import { getPlanetById } from '../../data/planets'
+import { getBodyById } from '../../data/planets'
 import {
   useSolarStore,
   type CameraMode,
@@ -33,6 +33,9 @@ const DEFAULT_FOCUS_DISTANCE = 4.5
 const WORLD_UP = new THREE.Vector3(0, 1, 0)
 /** How high above the orbital plane the camera sits when focused. */
 const FOCUS_HEIGHT = 1.6
+/** Moons are tiny: get much closer and lower. */
+const MOON_DEFAULT_FOCUS_DISTANCE = 0.9
+const MOON_FOCUS_HEIGHT = 0.35
 /**
  * How much we shift the camera's look-at target sideways from the planet,
  * so the planet visually anchors on the LEFT third of the screen.
@@ -66,9 +69,26 @@ const getViewDefaultTarget = (view: ViewId): THREE.Vector3 => {
   return SOLAR_DEFAULT_TARGET
 }
 
-const computeFocusDistance = (radius: number, override?: number): number => {
-  if (override !== undefined) return override
-  return Math.max(DEFAULT_FOCUS_DISTANCE, radius * 4.2)
+interface FocusFraming {
+  distance: number
+  height: number
+}
+
+const computeFocusFraming = (
+  kind: 'planet' | 'moon',
+  radius: number,
+  override?: number,
+): FocusFraming => {
+  if (kind === 'moon') {
+    return {
+      distance: override ?? Math.max(MOON_DEFAULT_FOCUS_DISTANCE, radius * 5),
+      height: MOON_FOCUS_HEIGHT + radius * 0.5,
+    }
+  }
+  return {
+    distance: override ?? Math.max(DEFAULT_FOCUS_DISTANCE, radius * 4.2),
+    height: FOCUS_HEIGHT + radius * 0.5,
+  }
 }
 
 export function CameraRig() {
@@ -121,7 +141,7 @@ export function CameraRig() {
       mode,
       view,
       focusedId,
-      planetPositions,
+      bodyPositions,
       warpTargetView,
       setMode,
       completeReturn,
@@ -212,12 +232,13 @@ export function CameraRig() {
 
     if ((mode === 'focusing' || mode === 'focused') && focusedId) {
       if (view !== 'solar') return
-      const planetPos = planetPositions[focusedId]
-      const def = getPlanetById(focusedId)
-      if (!planetPos || !def) return
+      const planetPos = bodyPositions[focusedId]
+      const body = getBodyById(focusedId)
+      if (!planetPos || !body) return
+      const def = body.kind === 'moon' ? body.moon : body.planet
 
-      const focusDistance = computeFocusDistance(def.radius, def.focusDistance)
-      const focusHeight = FOCUS_HEIGHT + def.radius * 0.5
+      const { distance: focusDistance, height: focusHeight } =
+        computeFocusFraming(body.kind, def.radius, def.focusDistance)
       const defaultElevation = Math.atan2(focusHeight, focusDistance)
       const defaultDistance = Math.hypot(focusDistance, focusHeight)
 
@@ -231,9 +252,20 @@ export function CameraRig() {
       const elevation = orbit?.elevation ?? defaultElevation
       const distance = defaultDistance * (orbit?.zoom ?? 1)
 
-      // Frame of reference co-rotates with the planet: azimuth 0 looks at
-      // it from outside its orbit, so the Sun stays behind it as it moves.
-      tmpOutward.current.set(planetPos.x, 0, planetPos.z)
+      // Frame of reference co-rotates with the body: azimuth 0 looks at a
+      // planet from outside its orbit (Sun behind it), and at a moon from
+      // outside its orbit around the planet (planet behind it).
+      const parentPos =
+        body.kind === 'moon' ? bodyPositions[body.planet.id] : undefined
+      if (parentPos) {
+        tmpOutward.current.set(
+          planetPos.x - parentPos.x,
+          0,
+          planetPos.z - parentPos.z,
+        )
+      } else {
+        tmpOutward.current.set(planetPos.x, 0, planetPos.z)
+      }
       if (tmpOutward.current.lengthSq() < 1e-6) {
         tmpOutward.current.set(0, 0, 1)
       } else {

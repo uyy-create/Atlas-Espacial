@@ -1,6 +1,10 @@
 import { create } from 'zustand'
 import * as THREE from 'three'
-import { getNeighborPlanetId } from '../data/planets'
+import {
+  getBodyById,
+  getNeighborMoonId,
+  getNeighborPlanetId,
+} from '../data/planets'
 
 export type CameraMode =
   | 'overview'
@@ -49,10 +53,11 @@ interface SolarState {
   mode: CameraMode
   focusedId: string | null
   /**
-   * Live world position of every planet. Planets register their group ref
-   * here so the camera rig can follow a moving target without prop drilling.
+   * Live world position of every focusable body (planets and moons). They
+   * register a Vector3 here that they update in place every frame, so the
+   * camera rig can follow a moving target without prop drilling.
    */
-  planetPositions: Record<string, THREE.Vector3>
+  bodyPositions: Record<string, THREE.Vector3>
   hoveredId: string | null
 
   view: ViewId
@@ -67,7 +72,7 @@ interface SolarState {
   unfocus: () => void
   setMode: (mode: CameraMode) => void
   completeReturn: () => void
-  registerPlanetPosition: (id: string, position: THREE.Vector3) => void
+  registerBodyPosition: (id: string, position: THREE.Vector3) => void
   setHovered: (id: string | null) => void
 
   navigateToView: (id: ViewId) => void
@@ -83,7 +88,7 @@ export const useSolarStore = create<SolarState>((set, get) => ({
   pendingFocusId: null,
   mode: 'overview',
   focusedId: null,
-  planetPositions: {},
+  bodyPositions: {},
   hoveredId: null,
 
   view: 'solar',
@@ -122,14 +127,27 @@ export const useSolarStore = create<SolarState>((set, get) => ({
   focusNeighbor: (direction) => {
     if (get().mode === 'warping') return
     const { focusedId } = get()
-    const next = getNeighborPlanetId(focusedId, direction)
+    if (!focusedId) return
+    // Arrows move within the current ring: sibling moons, or planets.
+    const body = getBodyById(focusedId)
+    const next =
+      body?.kind === 'moon'
+        ? getNeighborMoonId(focusedId, direction)
+        : getNeighborPlanetId(focusedId, direction)
     if (!next || next === focusedId) return
     set({ focusedId: next, mode: 'focusing' })
   },
 
   unfocus: () => {
     if (get().mode === 'warping') return
-    if (!get().focusedId) return
+    const { focusedId } = get()
+    if (!focusedId) return
+    // Leaving a moon steps back to its planet; leaving a planet, to overview.
+    const body = getBodyById(focusedId)
+    if (body?.kind === 'moon') {
+      set({ focusedId: body.planet.id, mode: 'focusing' })
+      return
+    }
     set({ mode: 'returning' })
   },
 
@@ -137,9 +155,9 @@ export const useSolarStore = create<SolarState>((set, get) => ({
 
   completeReturn: () => set({ mode: 'overview', focusedId: null }),
 
-  registerPlanetPosition: (id, position) =>
+  registerBodyPosition: (id, position) =>
     set((state) => ({
-      planetPositions: { ...state.planetPositions, [id]: position },
+      bodyPositions: { ...state.bodyPositions, [id]: position },
     })),
 
   setHovered: (id) => set({ hoveredId: id }),

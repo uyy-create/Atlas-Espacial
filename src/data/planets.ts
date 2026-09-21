@@ -57,6 +57,12 @@ export interface AtmosphereDef {
   scale?: number
 }
 
+export interface MoonFacts {
+  diameter: string
+  orbitPeriod: string
+  distanceFromPlanet: string
+}
+
 export interface MoonDef {
   id: string
   name: string
@@ -74,6 +80,10 @@ export interface MoonDef {
   orbitInitialAngle: number
   /** Inclination relative to the parent's equator (degrees). */
   inclinationDeg?: number
+  /** Override the camera's focus distance. Defaults to a function of radius. */
+  focusDistance?: number
+  facts: MoonFacts
+  description: string
 }
 
 export interface PlanetDef {
@@ -177,6 +187,13 @@ export const PLANETS: PlanetDef[] = [
         orbitPeriodDays: 27.32,
         orbitInitialAngle: 0,
         inclinationDeg: 5.1,
+        facts: {
+          diameter: '3 474 km',
+          orbitPeriod: '27.3 días',
+          distanceFromPlanet: '384 400 km',
+        },
+        description:
+          'El único satélite natural de la Tierra y el quinto mayor del sistema solar. Rota sincronizada con su órbita, así que siempre nos muestra la misma cara. Se formó hace 4 500 millones de años, tras el impacto de un protoplaneta contra la Tierra.',
       },
     ],
     atmosphere: { color: '#5aa9ff', intensity: 1.25, scale: 1.18 },
@@ -211,6 +228,13 @@ export const PLANETS: PlanetDef[] = [
         orbitRadius: 1.05,
         orbitPeriodDays: 0.319,
         orbitInitialAngle: 0,
+        facts: {
+          diameter: '22 km',
+          orbitPeriod: '7 h 39 min',
+          distanceFromPlanet: '9 376 km',
+        },
+        description:
+          'La mayor y más cercana de las dos lunas de Marte. Orbita más deprisa de lo que el planeta rota, así que sale por el oeste y se pone por el este. Se acerca 2 cm al año y acabará desintegrándose en un anillo.',
       },
       {
         id: 'deimos',
@@ -220,6 +244,13 @@ export const PLANETS: PlanetDef[] = [
         orbitRadius: 1.45,
         orbitPeriodDays: 1.263,
         orbitInitialAngle: Math.PI,
+        facts: {
+          diameter: '12 km',
+          orbitPeriod: '30 h 18 min',
+          distanceFromPlanet: '23 460 km',
+        },
+        description:
+          'La luna exterior de Marte, pequeña e irregular, probablemente un asteroide capturado. Una gruesa capa de regolito suaviza sus cráteres.',
       },
     ],
     atmosphere: { color: '#ffb08a', intensity: 0.55, scale: 1.1 },
@@ -255,6 +286,13 @@ export const PLANETS: PlanetDef[] = [
         orbitRadius: 3.2,
         orbitPeriodDays: 1.769,
         orbitInitialAngle: 0,
+        facts: {
+          diameter: '3 643 km',
+          orbitPeriod: '1.77 días',
+          distanceFromPlanet: '421 700 km',
+        },
+        description:
+          'El cuerpo con más actividad volcánica del sistema solar: las mareas de Júpiter amasan su interior y cientos de volcanes lanzan azufre a cientos de kilómetros de altura.',
       },
       {
         id: 'europa',
@@ -264,6 +302,13 @@ export const PLANETS: PlanetDef[] = [
         orbitRadius: 3.9,
         orbitPeriodDays: 3.551,
         orbitInitialAngle: Math.PI * 0.5,
+        facts: {
+          diameter: '3 122 km',
+          orbitPeriod: '3.55 días',
+          distanceFromPlanet: '671 000 km',
+        },
+        description:
+          'Bajo su corteza de hielo agrietado se esconde un océano de agua salada con más volumen que todos los océanos terrestres juntos. Es uno de los lugares más prometedores para buscar vida.',
       },
       {
         id: 'ganymede',
@@ -273,6 +318,13 @@ export const PLANETS: PlanetDef[] = [
         orbitRadius: 4.7,
         orbitPeriodDays: 7.155,
         orbitInitialAngle: Math.PI,
+        facts: {
+          diameter: '5 268 km',
+          orbitPeriod: '7.15 días',
+          distanceFromPlanet: '1 070 000 km',
+        },
+        description:
+          'La luna más grande del sistema solar, mayor que Mercurio, y la única con campo magnético propio. Alterna terrenos oscuros y antiguos con surcos brillantes más jóvenes.',
       },
       {
         id: 'callisto',
@@ -282,6 +334,13 @@ export const PLANETS: PlanetDef[] = [
         orbitRadius: 5.6,
         orbitPeriodDays: 16.69,
         orbitInitialAngle: Math.PI * 1.5,
+        facts: {
+          diameter: '4 821 km',
+          orbitPeriod: '16.7 días',
+          distanceFromPlanet: '1 883 000 km',
+        },
+        description:
+          'La superficie más craterizada que se conoce: un registro casi intacto de 4 000 millones de años de impactos. Queda fuera del cinturón de radiación de Júpiter, lo que la convierte en candidata para una base futura.',
       },
     ],
     atmosphere: { color: '#f3d7a8', intensity: 0.7, scale: 1.1 },
@@ -324,6 +383,13 @@ export const PLANETS: PlanetDef[] = [
         orbitRadius: 5.4,
         orbitPeriodDays: 15.95,
         orbitInitialAngle: 0,
+        facts: {
+          diameter: '5 150 km',
+          orbitPeriod: '15.9 días',
+          distanceFromPlanet: '1 222 000 km',
+        },
+        description:
+          'La única luna con una atmósfera densa, de nitrógeno y metano, y el único lugar aparte de la Tierra con líquidos estables en superficie: lagos y ríos de metano y etano.',
       },
       {
         id: 'enceladus',
@@ -333,6 +399,13 @@ export const PLANETS: PlanetDef[] = [
         orbitRadius: 4.1,
         orbitPeriodDays: 1.37,
         orbitInitialAngle: Math.PI * 0.6,
+        facts: {
+          diameter: '504 km',
+          orbitPeriod: '1.37 días',
+          distanceFromPlanet: '238 000 km',
+        },
+        description:
+          'Pequeña y blanquísima, expulsa géiseres de agua desde grietas en su polo sur que alimentan el anillo E de Saturno. Bajo el hielo hay un océano global en contacto con roca caliente.',
       },
     ],
     atmosphere: { color: '#fbe8b8', intensity: 0.6, scale: 1.09 },
@@ -368,6 +441,13 @@ export const PLANETS: PlanetDef[] = [
         orbitRadius: 2.8,
         orbitPeriodDays: 8.706,
         orbitInitialAngle: 0,
+        facts: {
+          diameter: '1 578 km',
+          orbitPeriod: '8.71 días',
+          distanceFromPlanet: '436 000 km',
+        },
+        description:
+          'La mayor luna de Urano: un mundo de hielo y roca surcado por cañones enormes que delatan una expansión antigua de su interior.',
       },
     ],
     // Thirteen narrow, dark rings between 1.64 and 2.0 radii; epsilon is
@@ -421,6 +501,13 @@ export const PLANETS: PlanetDef[] = [
         orbitRadius: 3,
         orbitPeriodDays: -5.877,
         orbitInitialAngle: Math.PI * 0.3,
+        facts: {
+          diameter: '2 707 km',
+          orbitPeriod: '5.88 días',
+          distanceFromPlanet: '354 800 km',
+        },
+        description:
+          'Orbita en sentido contrario a la rotación de Neptuno, señal de que fue capturado del cinturón de Kuiper. Es uno de los cuerpos más fríos conocidos y tiene géiseres de nitrógeno.',
       },
     ],
     // Galle (broad, faint), Le Verrier, Lassell sheet, Arago and Adams
@@ -455,6 +542,37 @@ export const getPlanetById = (id: string | null): PlanetDef | undefined =>
 
 export const getPlanetIndex = (id: string | null): number =>
   id ? PLANETS.findIndex((p) => p.id === id) : -1
+
+export type BodyRef =
+  | { kind: 'planet'; planet: PlanetDef }
+  | { kind: 'moon'; planet: PlanetDef; moon: MoonDef }
+
+/** Resolve any focusable body (planet or moon) by id. */
+export const getBodyById = (id: string | null): BodyRef | undefined => {
+  if (!id) return undefined
+  for (const planet of PLANETS) {
+    if (planet.id === id) return { kind: 'planet', planet }
+    const moon = planet.moons?.find((m) => m.id === id)
+    if (moon) return { kind: 'moon', planet, moon }
+  }
+  return undefined
+}
+
+/** The planet itself, or the parent of a moon. */
+export const getParentPlanetId = (id: string | null): string | null =>
+  getBodyById(id)?.planet.id ?? null
+
+export const getNeighborMoonId = (
+  moonId: string,
+  direction: 1 | -1,
+): string | null => {
+  const body = getBodyById(moonId)
+  if (!body || body.kind !== 'moon') return null
+  const moons = body.planet.moons ?? []
+  const idx = moons.findIndex((m) => m.id === moonId)
+  if (idx === -1 || moons.length < 2) return null
+  return moons[(idx + direction + moons.length) % moons.length].id
+}
 
 export const getNeighborPlanetId = (
   id: string | null,

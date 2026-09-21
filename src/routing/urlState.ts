@@ -1,4 +1,4 @@
-import { getPlanetById } from '../data/planets'
+import { getBodyById } from '../data/planets'
 import { VIEWS, type ViewId } from '../store/useSolarStore'
 
 /**
@@ -6,7 +6,7 @@ import { VIEWS, type ViewId } from '../store/useSolarStore'
  * history entries) whenever it changes:
  *
  *   ?view=galaxy
- *   ?view=solar&planet=mars
+ *   ?view=solar&planet=mars          (a moon id works too: planet=titan)
  *   ?planet=jupiter&date=2030-06-15   (starts paused on that date)
  *
  * `date` is only present while the simulation is paused, so a copied link
@@ -33,7 +33,8 @@ const parseDate = (value: string | null): Date | null => {
 
 export function readUrlState(search: string): UrlState {
   const params = new URLSearchParams(search)
-  const planetId = getPlanetById(params.get(PLANET_PARAM))?.id ?? null
+  const body = getBodyById(params.get(PLANET_PARAM))
+  const planetId = body ? (body.kind === 'moon' ? body.moon.id : body.planet.id) : null
   const viewParam = params.get(VIEW_PARAM)
   // A planet implies the solar view, whatever `view` says.
   const view: ViewId = planetId

@@ -1,13 +1,16 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   PLANETS,
+  getBodyById,
+  getNeighborMoonId,
   getNeighborPlanetId,
-  getPlanetById,
+  type MoonDef,
+  type PlanetDef,
 } from '../data/planets'
 import { useSolarStore } from '../store/useSolarStore'
 import { BackButton } from './BackButton'
 
-const labelMap: Record<string, string> = {
+const planetFactLabels: Record<keyof PlanetDef['facts'], string> = {
   diameter: 'Diámetro',
   gravity: 'Gravedad',
   moons: 'Lunas',
@@ -16,28 +19,60 @@ const labelMap: Record<string, string> = {
   distanceFromSun: 'Distancia al Sol',
 }
 
+const moonFactLabels: Record<keyof MoonDef['facts'], string> = {
+  diameter: 'Diámetro',
+  orbitPeriod: 'Periodo orbital',
+  distanceFromPlanet: 'Distancia al planeta',
+}
+
+interface Neighbor {
+  id: string | null
+  name: string
+}
+
+const nameOf = (id: string | null): string => {
+  const body = getBodyById(id)
+  if (!body) return '—'
+  return body.kind === 'moon' ? body.moon.name : body.planet.name
+}
+
 export function PlanetInfoPanel() {
   const mode = useSolarStore((s) => s.mode)
   const focusedId = useSolarStore((s) => s.focusedId)
+  const focus = useSolarStore((s) => s.focus)
   const focusNeighbor = useSolarStore((s) => s.focusNeighbor)
 
   const isVisible =
     focusedId !== null && (mode === 'focusing' || mode === 'focused')
 
-  const planet = getPlanetById(focusedId)
-  const prevId = getNeighborPlanetId(focusedId, -1)
-  const nextId = getNeighborPlanetId(focusedId, 1)
-  const prevPlanet = getPlanetById(prevId)
-  const nextPlanet = getPlanetById(nextId)
-  const planetIndex = focusedId
-    ? PLANETS.findIndex((p) => p.id === focusedId)
-    : -1
+  const body = getBodyById(focusedId)
+
+  let index = -1
+  let total = 0
+  let prev: Neighbor = { id: null, name: '—' }
+  let next: Neighbor = { id: null, name: '—' }
+  if (body?.kind === 'planet') {
+    index = PLANETS.findIndex((p) => p.id === body.planet.id)
+    total = PLANETS.length
+    const prevId = getNeighborPlanetId(body.planet.id, -1)
+    const nextId = getNeighborPlanetId(body.planet.id, 1)
+    prev = { id: prevId, name: nameOf(prevId) }
+    next = { id: nextId, name: nameOf(nextId) }
+  } else if (body?.kind === 'moon') {
+    const siblings = body.planet.moons ?? []
+    index = siblings.findIndex((m) => m.id === body.moon.id)
+    total = siblings.length
+    const prevId = getNeighborMoonId(body.moon.id, -1)
+    const nextId = getNeighborMoonId(body.moon.id, 1)
+    prev = { id: prevId, name: nameOf(prevId) }
+    next = { id: nextId, name: nameOf(nextId) }
+  }
 
   return (
     <AnimatePresence mode="wait">
-      {isVisible && planet && (
+      {isVisible && body && (
         <motion.aside
-          key={planet.id}
+          key={focusedId}
           initial={{ x: 480, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 480, opacity: 0 }}
@@ -45,109 +80,72 @@ export function PlanetInfoPanel() {
           className="pointer-events-auto absolute right-0 top-0 z-10 flex h-full w-full max-w-[440px] flex-col border-l border-white/10 bg-cosmos-panel p-8 backdrop-blur-xl md:max-w-[480px]"
         >
           <div className="flex items-center justify-between">
-            <BackButton />
+            <BackButton
+              label={
+                body.kind === 'moon' ? `Volver a ${body.planet.name}` : 'Volver'
+              }
+            />
             <span className="font-display text-[11px] uppercase tracking-[0.35em] text-white/40">
-              {String(planetIndex + 1).padStart(2, '0')} / {String(PLANETS.length).padStart(2, '0')}
+              {String(index + 1).padStart(2, '0')} /{' '}
+              {String(total).padStart(2, '0')}
             </span>
           </div>
 
           <div className="mt-8 flex-1 overflow-y-auto pr-1">
-            <p className="font-display text-xs uppercase tracking-[0.4em] text-cosmos-accent/80">
-              Planeta
-            </p>
-            <h1 className="mt-2 font-display text-6xl font-bold text-white">
-              {planet.name}
-            </h1>
-
-            <p className="mt-6 text-sm leading-relaxed text-white/70">
-              {planet.description}
-            </p>
-
-            <div className="mt-10">
-              <h2 className="font-display text-xs uppercase tracking-[0.35em] text-white/50">
-                Datos clave
-              </h2>
-              <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5">
-                {(Object.keys(planet.facts) as Array<keyof typeof planet.facts>).map(
-                  (key) => (
-                    <div key={key as string}>
-                      <dt className="text-[11px] uppercase tracking-[0.2em] text-white/40">
-                        {labelMap[key as string] ?? (key as string)}
-                      </dt>
-                      <dd className="mt-1 font-display text-lg font-medium text-white">
-                        {String(planet.facts[key])}
-                      </dd>
-                    </div>
-                  ),
-                )}
-              </dl>
-            </div>
-
-            {planet.moons && planet.moons.length > 0 && (
-              <div className="mt-10">
-                <h2 className="font-display text-xs uppercase tracking-[0.35em] text-white/50">
-                  Lunas destacadas
-                </h2>
-                <ul className="mt-4 flex flex-wrap gap-2">
-                  {planet.moons.map((moon) => (
-                    <li
-                      key={moon.id}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80"
-                    >
-                      <span
-                        aria-hidden
-                        className="inline-block h-2 w-2 rounded-full"
-                        style={{ background: moon.color }}
-                      />
-                      {moon.name}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            {body.kind === 'planet' ? (
+              <PlanetSheet planet={body.planet} onFocusMoon={focus} />
+            ) : (
+              <MoonSheet planet={body.planet} moon={body.moon} />
             )}
           </div>
 
-          <nav className="mt-6 flex items-center justify-between gap-3 border-t border-white/10 pt-5">
-            <button
-              type="button"
-              onClick={() => focusNeighbor(-1)}
-              className="group flex flex-1 items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition hover:border-white/30 hover:bg-white/[0.07]"
-            >
-              <ChevronIcon direction="left" />
-              <span className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-[0.3em] text-white/40">
-                  Anterior
+          {total > 1 && (
+            <nav className="mt-6 flex items-center justify-between gap-3 border-t border-white/10 pt-5">
+              <button
+                type="button"
+                onClick={() => focusNeighbor(-1)}
+                className="group flex flex-1 items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition hover:border-white/30 hover:bg-white/[0.07]"
+              >
+                <ChevronIcon direction="left" />
+                <span className="flex flex-col">
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-white/40">
+                    Anterior
+                  </span>
+                  <span className="font-display text-sm font-medium text-white/90">
+                    {prev.name}
+                  </span>
                 </span>
-                <span className="font-display text-sm font-medium text-white/90">
-                  {prevPlanet?.name ?? '—'}
-                </span>
-              </span>
-            </button>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => focusNeighbor(1)}
-              className="group flex flex-1 items-center justify-end gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-right transition hover:border-white/30 hover:bg-white/[0.07]"
-            >
-              <span className="flex flex-col items-end">
-                <span className="text-[10px] uppercase tracking-[0.3em] text-white/40">
-                  Siguiente
+              <button
+                type="button"
+                onClick={() => focusNeighbor(1)}
+                className="group flex flex-1 items-center justify-end gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-right transition hover:border-white/30 hover:bg-white/[0.07]"
+              >
+                <span className="flex flex-col items-end">
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-white/40">
+                    Siguiente
+                  </span>
+                  <span className="font-display text-sm font-medium text-white/90">
+                    {next.name}
+                  </span>
                 </span>
-                <span className="font-display text-sm font-medium text-white/90">
-                  {nextPlanet?.name ?? '—'}
-                </span>
-              </span>
-              <ChevronIcon direction="right" />
-            </button>
-          </nav>
+                <ChevronIcon direction="right" />
+              </button>
+            </nav>
+          )}
 
           <p className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.3em] text-white/35">
-            <KeyHint label="←" />
-            <KeyHint label="→" />
-            <span>navegar</span>
-            <span aria-hidden className="text-white/20">·</span>
+            {total > 1 && (
+              <>
+                <KeyHint label="←" />
+                <KeyHint label="→" />
+                <span>navegar</span>
+                <span aria-hidden className="text-white/20">·</span>
+              </>
+            )}
             <KeyHint label="Esc" />
-            <span>salir</span>
+            <span>{body.kind === 'moon' ? 'planeta' : 'salir'}</span>
             <span aria-hidden className="text-white/20">·</span>
             <span>arrastrar</span>
             <span className="text-white/55">orbitar</span>
@@ -158,6 +156,118 @@ export function PlanetInfoPanel() {
         </motion.aside>
       )}
     </AnimatePresence>
+  )
+}
+
+function PlanetSheet({
+  planet,
+  onFocusMoon,
+}: {
+  planet: PlanetDef
+  onFocusMoon: (id: string) => void
+}) {
+  return (
+    <>
+      <p className="font-display text-xs uppercase tracking-[0.4em] text-cosmos-accent/80">
+        Planeta
+      </p>
+      <h1 className="mt-2 font-display text-6xl font-bold text-white">
+        {planet.name}
+      </h1>
+
+      <p className="mt-6 text-sm leading-relaxed text-white/70">
+        {planet.description}
+      </p>
+
+      <FactGrid
+        entries={(
+          Object.keys(planet.facts) as Array<keyof PlanetDef['facts']>
+        ).map((key) => [planetFactLabels[key], String(planet.facts[key])])}
+      />
+
+      {planet.moons && planet.moons.length > 0 && (
+        <div className="mt-10">
+          <h2 className="font-display text-xs uppercase tracking-[0.35em] text-white/50">
+            Lunas destacadas
+          </h2>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {planet.moons.map((moon) => (
+              <li key={moon.id}>
+                <button
+                  type="button"
+                  onClick={() => onFocusMoon(moon.id)}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 transition hover:border-white/35 hover:bg-white/10 hover:text-white"
+                >
+                  <span
+                    aria-hidden
+                    className="inline-block h-2 w-2 rounded-full"
+                    style={{ background: moon.color }}
+                  />
+                  {moon.name}
+                  <svg
+                    aria-hidden
+                    viewBox="0 0 16 16"
+                    className="h-3 w-3 text-white/40"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="m6 4 4 4-4 4" />
+                  </svg>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  )
+}
+
+function MoonSheet({ planet, moon }: { planet: PlanetDef; moon: MoonDef }) {
+  return (
+    <>
+      <p className="font-display text-xs uppercase tracking-[0.4em] text-cosmos-accent/80">
+        Luna de {planet.name}
+      </p>
+      <h1 className="mt-2 font-display text-6xl font-bold text-white">
+        {moon.name}
+      </h1>
+
+      <p className="mt-6 text-sm leading-relaxed text-white/70">
+        {moon.description}
+      </p>
+
+      <FactGrid
+        entries={(
+          Object.keys(moon.facts) as Array<keyof MoonDef['facts']>
+        ).map((key) => [moonFactLabels[key], moon.facts[key]])}
+      />
+    </>
+  )
+}
+
+function FactGrid({ entries }: { entries: Array<[string, string]> }) {
+  return (
+    <div className="mt-10">
+      <h2 className="font-display text-xs uppercase tracking-[0.35em] text-white/50">
+        Datos clave
+      </h2>
+      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5">
+        {entries.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-[11px] uppercase tracking-[0.2em] text-white/40">
+              {label}
+            </dt>
+            <dd className="mt-1 font-display text-lg font-medium text-white">
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   )
 }
 

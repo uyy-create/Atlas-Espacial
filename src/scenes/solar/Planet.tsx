@@ -80,7 +80,7 @@ export function Planet({ def }: PlanetProps) {
   const mode = useSolarStore((s) => s.mode)
   const focusedId = useSolarStore((s) => s.focusedId)
   const focus = useSolarStore((s) => s.focus)
-  const registerPlanetPosition = useSolarStore((s) => s.registerPlanetPosition)
+  const registerBodyPosition = useSolarStore((s) => s.registerBodyPosition)
   const setHoveredId = useSolarStore((s) => s.setHovered)
 
   const canInteract = view === 'solar' && mode !== 'warping'
@@ -89,15 +89,18 @@ export function Planet({ def }: PlanetProps) {
   const isOtherFocused = focusedId !== null && !isFocused
 
   useEffect(() => {
-    registerPlanetPosition(def.id, worldPosRef.current)
-  }, [def.id, registerPlanetPosition])
+    registerBodyPosition(def.id, worldPosRef.current)
+  }, [def.id, registerBodyPosition])
 
   useEffect(() => {
     enhanceTextureQuality(colorMap, maxAnisotropy, 'color')
   }, [colorMap, maxAnisotropy])
 
+  // Only touch the cursor while hovered and restore it in the cleanup, so a
+  // moon (child) taking over the hover isn't overridden by this effect.
   useEffect(() => {
-    document.body.style.cursor = hovered ? 'pointer' : 'auto'
+    if (!hovered) return
+    document.body.style.cursor = 'pointer'
     return () => {
       document.body.style.cursor = 'auto'
     }

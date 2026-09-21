@@ -1,6 +1,6 @@
 import { useSolarStore } from '../store/useSolarStore'
 
-export function BackButton() {
+export function BackButton({ label = 'Volver' }: { label?: string }) {
   const unfocus = useSolarStore((s) => s.unfocus)
 
   return (
@@ -21,7 +21,7 @@ export function BackButton() {
       >
         <path d="M10 12 6 8l4-4" />
       </svg>
-      <span>Volver</span>
+      <span>{label}</span>
     </button>
   )
 }
