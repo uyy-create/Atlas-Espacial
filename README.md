@@ -27,7 +27,7 @@ Abre la URL que muestra Vite (normalmente `http://localhost:5173`).
 | Orbitar / acercar (enfocado)    | Arrastrar · rueda (o pinza en táctil)         |
 | Salir del foco                  | `Esc` o clic en el vacío                      |
 | Pausar / reanudar el tiempo     | `Espacio` o el botón de la barra inferior     |
-| Velocidad y fecha               | Barra inferior (1 día/s … 10 años/s, «Hoy»)   |
+| Velocidad y fecha               | Barra inferior (1 día/s … 6 meses/s, «Hoy»)   |
 | Cambiar de vista                | Navigator (arriba a la izquierda)             |
 
 Las posiciones de los planetas son reales para la fecha simulada

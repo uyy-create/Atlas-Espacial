@@ -7,15 +7,20 @@ export interface TimeSpeed {
   daysPerSecond: number
 }
 
+/**
+ * Presets top out at six months per second: past that the inner planets
+ * are a blur (Mercury would lap the Sun several times a second) and only
+ * the outer ones stay readable, which is not worth a preset.
+ */
 export const TIME_SPEEDS: TimeSpeed[] = [
   { id: 'day', label: '1 día/s', daysPerSecond: 1 },
+  { id: 'days3', label: '3 días/s', daysPerSecond: 3 },
   { id: 'week', label: '1 semana/s', daysPerSecond: 7 },
   { id: 'month', label: '1 mes/s', daysPerSecond: 30.44 },
-  { id: 'year', label: '1 año/s', daysPerSecond: 365.25 },
-  { id: 'decade', label: '10 años/s', daysPerSecond: 3652.5 },
+  { id: 'halfyear', label: '6 meses/s', daysPerSecond: 182.6 },
 ]
 
-export const DEFAULT_SPEED_ID = 'week'
+export const DEFAULT_SPEED_ID = 'days3'
 
 /**
  * Simulated clock. `clock` is mutated in place every frame by

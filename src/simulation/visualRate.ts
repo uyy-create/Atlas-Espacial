@@ -19,7 +19,10 @@ export function visualAngularStep(
   return periodDays < 0 ? -capped : capped
 }
 
-/** One revolution every 3 s at most. */
-export const MAX_SPIN_RAD_PER_SEC = TWO_PI / 3
-/** One orbit every 2 s at most. */
-export const MAX_MOON_RAD_PER_SEC = TWO_PI / 2
+/**
+ * One revolution every 10 s at most. Spin is decorative past this point:
+ * even at 1 day/s every planet but Mercury and Venus would exceed it.
+ */
+export const MAX_SPIN_RAD_PER_SEC = TWO_PI / 10
+/** One orbit every 6 s at most. */
+export const MAX_MOON_RAD_PER_SEC = TWO_PI / 6
