@@ -14,6 +14,7 @@ import { enhanceTextureQuality } from '../../components/textureQuality'
 import { PlanetRings } from './PlanetRings'
 import { Moon } from './Moon'
 import { Atmosphere } from './Atmosphere'
+import { NightLightsLayer } from './NightLightsLayer'
 
 interface PlanetProps {
   def: PlanetDef
@@ -187,6 +188,10 @@ export function Planet({ def }: PlanetProps) {
               }
             />
           </mesh>
+
+          {def.nightUrl && (
+            <NightLightsLayer url={def.nightUrl} radius={def.radius} />
+          )}
 
           {def.cloudsUrl && (
             <CloudLayer

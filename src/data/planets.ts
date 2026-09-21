@@ -96,6 +96,8 @@ export interface PlanetDef {
   textureUrl: string
   /** Optional cloud overlay (Earth). */
   cloudsUrl?: string
+  /** Optional city-lights map shown on the night side (Earth). */
+  nightUrl?: string
   /** Visual radius in scene units. */
   radius: number
   /** Decorative orbit radius (not to scale). */
@@ -171,6 +173,8 @@ export const PLANETS: PlanetDef[] = [
     accentColor: '#22c55e',
     textureUrl: `${TEX}/earthmap1k.jpg`,
     cloudsUrl: `${TEX}/earthcloudmap.jpg`,
+    // NASA Black Marble 2016 (Visible Earth, public domain), downscaled.
+    nightUrl: `${TEX}/earthlights2k.jpg`,
     radius: 0.9,
     orbitRadius: 16,
     elements: { L0: 100.46457166, Lrate: 35999.37244981, varpi: 102.93768193, e: 0.01671123 },
