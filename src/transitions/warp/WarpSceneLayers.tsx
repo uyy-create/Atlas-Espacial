@@ -9,6 +9,7 @@ import {
   SOLAR_SYSTEM_GALAXY_MARKER,
 } from '../../scenes/galaxy/galaxyMarkers'
 import { GalaxyScene } from '../../scenes/galaxy/GalaxyScene'
+import { AsteroidBelt } from '../../scenes/solar/AsteroidBelt'
 import { Orbit } from '../../scenes/solar/Orbit'
 import { Planet } from '../../scenes/solar/Planet'
 import { Sun } from '../../scenes/solar/Sun'
@@ -27,6 +28,7 @@ function SolarBodies() {
       {PLANETS.map((p) => (
         <Planet key={p.id} def={p} />
       ))}
+      <AsteroidBelt />
     </>
   )
 }

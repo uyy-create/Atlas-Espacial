@@ -87,12 +87,16 @@ const SHELL_VERT = /* glsl */ `
   varying vec3 vObjectNormal;
   varying vec3 vWorldNormal;
   varying vec3 vWorldPosition;
+  /** Camera distance to the Sun, in units of this shell's world radius. */
+  varying float vCameraDepth;
 
   void main() {
     vObjectNormal = normalize(position);
     vec4 worldPosition = modelMatrix * vec4(position, 1.0);
     vWorldPosition = worldPosition.xyz;
     vWorldNormal = normalize(mat3(modelMatrix) * normal);
+    vec3 center = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+    vCameraDepth = length(cameraPosition - center) / length(worldPosition.xyz - center);
     gl_Position = projectionMatrix * viewMatrix * worldPosition;
   }
 `
@@ -150,6 +154,7 @@ export const SUN_CORONA_FRAG = /* glsl */ `
   varying vec3 vObjectNormal;
   varying vec3 vWorldNormal;
   varying vec3 vWorldPosition;
+  varying float vCameraDepth;
 
   ${SIMPLEX_NOISE_3D}
 
@@ -158,6 +163,9 @@ export const SUN_CORONA_FRAG = /* glsl */ `
     vec3 viewDir = normalize(cameraPosition - vWorldPosition);
     float facing = clamp(-dot(normalize(vWorldNormal), viewDir), 0.0, 1.0);
     float falloff = pow(facing, uPower);
+    // Seen from inside the shell every back face would glow at full
+    // strength and tint the whole frame: fade out as the camera enters.
+    falloff *= smoothstep(0.9, 1.1, vCameraDepth);
 
     float flare = snoise(dir * 2.6 + vec3(0.0, uTime * 0.12, 0.0));
     flare += 0.5 * snoise(dir * 7.0 - vec3(uTime * 0.2, 0.0, 0.0));

@@ -284,6 +284,21 @@ export function CameraRig() {
         .addScaledVector(tmpRight.current, horizontal * Math.sin(azimuth))
       desiredPos.current.y += distance * Math.sin(elevation)
 
+      // Orbiting a moon toward its planet must not put the camera inside
+      // the planet (or its atmosphere shell): push it back out.
+      if (parentPos && body.kind === 'moon') {
+        const minParentDistance = body.planet.radius * 1.45
+        tmpForward.current.copy(desiredPos.current).sub(parentPos)
+        const parentDistance = tmpForward.current.length()
+        if (parentDistance < minParentDistance) {
+          if (parentDistance < 1e-6) tmpForward.current.set(0, 1, 0)
+          else tmpForward.current.divideScalar(parentDistance)
+          desiredPos.current
+            .copy(parentPos)
+            .addScaledVector(tmpForward.current, minParentDistance)
+        }
+      }
+
       // Shift the look-at to the camera's right so the planet anchors on
       // the left third of the screen whatever the orbit angle. Scales
       // with zoom so it stays put while zooming.
