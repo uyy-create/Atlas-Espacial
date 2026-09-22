@@ -70,6 +70,11 @@ export interface MoonDef {
   color: string
   /** Optional texture URL (relative to /). */
   textureUrl?: string
+  /**
+   * Multiplied over the texture. Used to colour the grayscale USGS mosaics
+   * (Galileo/Cassini/Mars Express shot most moons through a single filter).
+   */
+  mapTint?: string
   /** Visual radius in scene units. */
   radius: number
   /** Distance from the parent planet in scene units. */
@@ -120,6 +125,8 @@ export interface PlanetDef {
 }
 
 const TEX = '/textures'
+/** USGS Astrogeology global mosaics (public domain), 1024×512, gaps filled. */
+const MOON_TEX = '/textures/moons'
 
 export const PLANETS: PlanetDef[] = [
   {
@@ -228,6 +235,8 @@ export const PLANETS: PlanetDef[] = [
         id: 'phobos',
         name: 'Fobos',
         color: '#7e6b5a',
+        textureUrl: `${MOON_TEX}/phobos.jpg`,
+        mapTint: '#a89886',
         radius: 0.09,
         orbitRadius: 1.05,
         orbitPeriodDays: 0.319,
@@ -286,6 +295,7 @@ export const PLANETS: PlanetDef[] = [
         id: 'io',
         name: 'Ío',
         color: '#f4d96a',
+        textureUrl: `${MOON_TEX}/io.jpg`,
         radius: 0.16,
         orbitRadius: 3.2,
         orbitPeriodDays: 1.769,
@@ -302,6 +312,8 @@ export const PLANETS: PlanetDef[] = [
         id: 'europa',
         name: 'Europa',
         color: '#e9d3a8',
+        textureUrl: `${MOON_TEX}/europa.jpg`,
+        mapTint: '#e8dfcc',
         radius: 0.15,
         orbitRadius: 3.9,
         orbitPeriodDays: 3.551,
@@ -318,6 +330,7 @@ export const PLANETS: PlanetDef[] = [
         id: 'ganymede',
         name: 'Ganímedes',
         color: '#b9a489',
+        textureUrl: `${MOON_TEX}/ganymede.jpg`,
         radius: 0.22,
         orbitRadius: 4.7,
         orbitPeriodDays: 7.155,
@@ -334,6 +347,8 @@ export const PLANETS: PlanetDef[] = [
         id: 'callisto',
         name: 'Calisto',
         color: '#6e6354',
+        textureUrl: `${MOON_TEX}/callisto.jpg`,
+        mapTint: '#b9a894',
         radius: 0.2,
         orbitRadius: 5.6,
         orbitPeriodDays: 16.69,
@@ -383,6 +398,8 @@ export const PLANETS: PlanetDef[] = [
         id: 'titan',
         name: 'Titán',
         color: '#d99a52',
+        textureUrl: `${MOON_TEX}/titan.jpg`,
+        mapTint: '#e0a054',
         radius: 0.22,
         orbitRadius: 5.4,
         orbitPeriodDays: 15.95,
@@ -399,6 +416,8 @@ export const PLANETS: PlanetDef[] = [
         id: 'enceladus',
         name: 'Encélado',
         color: '#f0f0f5',
+        textureUrl: `${MOON_TEX}/enceladus.jpg`,
+        mapTint: '#f4f6ff',
         radius: 0.09,
         orbitRadius: 4.1,
         orbitPeriodDays: 1.37,
@@ -501,6 +520,7 @@ export const PLANETS: PlanetDef[] = [
         id: 'triton',
         name: 'Tritón',
         color: '#cfd6ce',
+        textureUrl: `${MOON_TEX}/triton.jpg`,
         radius: 0.12,
         orbitRadius: 3,
         orbitPeriodDays: -5.877,

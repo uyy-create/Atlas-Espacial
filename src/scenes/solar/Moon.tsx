@@ -17,10 +17,12 @@ interface MoonProps {
 
 function TexturedMoonMaterial({
   url,
+  tint,
   maxAnisotropy,
   emissiveIntensity,
 }: {
   url: string
+  tint?: string
   maxAnisotropy: number
   emissiveIntensity: number
 }) {
@@ -30,12 +32,17 @@ function TexturedMoonMaterial({
     enhanceTextureQuality(map, maxAnisotropy, 'color')
   }, [map, maxAnisotropy])
 
+  // The texture doubles as a faint emissive map: moons are mostly seen
+  // from their night side under bluish ambient light, which would wash
+  // Io's yellows into grey.
   return (
     <meshStandardMaterial
       map={map}
+      color={tint ?? '#ffffff'}
       roughness={0.95}
       metalness={0.02}
-      emissive="#ffffff"
+      emissiveMap={map}
+      emissive={tint ?? '#ffffff'}
       emissiveIntensity={emissiveIntensity}
     />
   )
@@ -119,7 +126,7 @@ export function Moon({ def }: MoonProps) {
 
   const inclination = ((def.inclinationDeg ?? 0) * Math.PI) / 180
   // Small bodies are hard to see on the night side: lift them a little.
-  const emissiveIntensity = hovered ? 0.16 : isFocused ? 0.05 : 0.09
+  const emissiveIntensity = hovered ? 0.3 : isFocused ? 0.22 : 0.16
 
   return (
     <group rotation={[inclination, 0, 0]}>
@@ -135,6 +142,7 @@ export function Moon({ def }: MoonProps) {
           {def.textureUrl ? (
             <TexturedMoonMaterial
               url={def.textureUrl}
+              tint={def.mapTint}
               maxAnisotropy={maxAnisotropy}
               emissiveIntensity={emissiveIntensity}
             />

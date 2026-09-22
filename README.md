@@ -64,6 +64,18 @@ La URL refleja el estado y se puede compartir:
 - `src/store/useSolarStore.ts` — máquina de estados (vista, foco, warp). En desarrollo se expone como `window.__solarStore` para depurar desde la consola.
 - `src/ui` — pantalla de carga, navegador de vistas y panel de información.
 
+## Créditos de texturas
+
+- Luces nocturnas de la Tierra: NASA Earth Observatory, *Black Marble 2016*
+  (dominio público), reducido a 2048 px.
+- Lunas (`public/textures/moons`): mosaicos globales del USGS Astrogeology
+  Science Center (dominio público) — Ío, Europa, Ganímedes y Calisto
+  (Galileo/Voyager), Titán y Encélado (Cassini), Tritón (Voyager 2) y Fobos
+  (Mars Express). Reducidos a 1024 px; las zonas sin datos se rellenan con el
+  hemisferio opuesto. Los mosaicos en escala de grises se tintan en el
+  material (`mapTint`). Deimos y Titania no tienen mapa global y se dibujan
+  con color plano.
+
 ## Requisitos
 
 - Node.js (versión LTS recomendada)
