@@ -34,7 +34,11 @@ Abre la URL que muestra Vite (normalmente `http://localhost:5173`).
 
 Las posiciones de los planetas son reales para la fecha simulada
 (elementos orbitales medios del JPL); los radios de las órbitas y los
-tamaños no están a escala.
+tamaños no están a escala. La fase de la Luna y la hora solar de la Tierra
+también siguen la fecha; el resto de lunas tienen una fase fija por fecha
+(no real). A velocidades altas los giros y las lunas rápidas se limitan
+visualmente, y al pausar vuelven a su posición real. El reloj se detiene en
+los bordes del rango de validez de las efemérides (1800–2050).
 
 ## Enlaces directos
 
@@ -75,6 +79,12 @@ La URL refleja el estado y se puede compartir:
   hemisferio opuesto. Los mosaicos en escala de grises se tintan en el
   material (`mapTint`). Deimos y Titania no tienen mapa global y se dibujan
   con color plano.
+
+## Fuentes
+
+Inter y Space Grotesk se sirven desde el propio build
+(`@fontsource-variable/*`, licencia OFL): la app no hace peticiones a
+terceros.
 
 ## Requisitos
 

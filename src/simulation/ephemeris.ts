@@ -29,9 +29,31 @@ export function julianDayToDate(jd: number): Date {
   return new Date((jd - 2440587.5) * MS_PER_DAY)
 }
 
+/**
+ * Dates the mean elements are fitted for. Explicit jumps land at noon UT,
+ * so the bounds do too.
+ */
+export const EPHEMERIS_MIN_JD = dateToJulianDay(new Date('1800-01-01T12:00:00Z'))
+export const EPHEMERIS_MAX_JD = dateToJulianDay(new Date('2050-12-31T12:00:00Z'))
+
+export const clampToEphemerisRange = (jd: number): number =>
+  Math.min(EPHEMERIS_MAX_JD, Math.max(EPHEMERIS_MIN_JD, jd))
+
 const wrap2Pi = (a: number) => {
   const t = a % (Math.PI * 2)
   return t < 0 ? t + Math.PI * 2 : t
+}
+
+/**
+ * Angle of a uniform rotation (a spin, or a circular moon orbit) on a
+ * given date, in radians. Negative periods turn retrograde.
+ */
+export function uniformAngle(
+  angleAtJ2000: number,
+  periodDays: number,
+  julianDay: number,
+): number {
+  return wrap2Pi(angleAtJ2000 + (2 * Math.PI * (julianDay - J2000)) / periodDays)
 }
 
 /**

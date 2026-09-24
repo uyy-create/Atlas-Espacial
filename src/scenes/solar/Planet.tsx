@@ -5,10 +5,13 @@ import * as THREE from 'three'
 import type { PlanetDef } from '../../data/planets'
 import { useSolarStore } from '../../store/useSolarStore'
 import { useTimeStore } from '../../store/useTimeStore'
-import { heliocentricLongitude } from '../../simulation/ephemeris'
+import {
+  heliocentricLongitude,
+  uniformAngle,
+} from '../../simulation/ephemeris'
 import {
   MAX_SPIN_RAD_PER_SEC,
-  visualAngularStep,
+  followTrueAngle,
 } from '../../simulation/visualRate'
 import { enhanceTextureQuality } from '../../components/textureQuality'
 import { PlanetRings } from './PlanetRings'
@@ -73,6 +76,8 @@ export function Planet({ def }: PlanetProps) {
   const tiltRef = useRef<THREE.Group>(null)
   const spinRef = useRef<THREE.Group>(null)
   const spinStepRef = useRef(0)
+  /** Clock jump last applied; -1 snaps the spin on the first frame. */
+  const dateVersionRef = useRef(-1)
   const worldPosRef = useRef(new THREE.Vector3())
 
   const [hovered, setHovered] = useState(false)
@@ -85,6 +90,9 @@ export function Planet({ def }: PlanetProps) {
   const setHoveredId = useSolarStore((s) => s.setHovered)
 
   const canInteract = view === 'solar' && mode !== 'warping'
+  // A warp can start under the pointer, and pointer-out is ignored from
+  // then on: don't let a stale hover linger through the transition.
+  const showHover = hovered && canInteract
 
   const isFocused = focusedId === def.id
   const isOtherFocused = focusedId !== null && !isFocused
@@ -100,15 +108,16 @@ export function Planet({ def }: PlanetProps) {
   // Only touch the cursor while hovered and restore it in the cleanup, so a
   // moon (child) taking over the hover isn't overridden by this effect.
   useEffect(() => {
-    if (!hovered) return
+    if (!showHover) return
     document.body.style.cursor = 'pointer'
     return () => {
       document.body.style.cursor = 'auto'
     }
-  }, [hovered])
+  }, [showHover])
 
   useFrame((_, delta) => {
-    const { julianDay, deltaDays } = useTimeStore.getState().clock
+    const { clock, dateVersion } = useTimeStore.getState()
+    const { julianDay, deltaDays } = clock
 
     // Real heliocentric longitude, counter-clockwise seen from above (+y).
     const lambda = heliocentricLongitude(def.elements, julianDay)
@@ -120,19 +129,35 @@ export function Planet({ def }: PlanetProps) {
       orbitRef.current.getWorldPosition(worldPosRef.current)
     }
     if (spinRef.current) {
-      const step = visualAngularStep(
+      const current = spinRef.current.rotation.y
+      const trueSpin = uniformAngle(
+        ((def.spinAtJ2000Deg ?? 0) * Math.PI) / 180,
         def.rotationPeriodDays,
-        deltaDays,
-        delta,
-        MAX_SPIN_RAD_PER_SEC,
+        julianDay,
       )
-      spinStepRef.current = step
-      spinRef.current.rotation.y += step
+      let spin: number
+      if (dateVersionRef.current !== dateVersion) {
+        // Date jump (or first frame): be where the date says, at once.
+        dateVersionRef.current = dateVersion
+        spin = trueSpin
+        spinStepRef.current = 0
+      } else {
+        spin = followTrueAngle(
+          current,
+          trueSpin,
+          def.rotationPeriodDays,
+          deltaDays,
+          delta,
+          MAX_SPIN_RAD_PER_SEC,
+        )
+        spinStepRef.current = spin - current
+      }
+      spinRef.current.rotation.y = spin
       // Hover grows the whole spin group so clouds and atmosphere scale
       // with the surface instead of being swallowed by it.
-      const target = hovered && !isOtherFocused ? 1.12 : 1
-      const current = spinRef.current.scale.x
-      const next = current + (target - current) * Math.min(1, delta * 8)
+      const target = showHover && !isOtherFocused ? 1.12 : 1
+      const scale = spinRef.current.scale.x
+      const next = scale + (target - scale) * Math.min(1, delta * 8)
       spinRef.current.scale.setScalar(next)
     }
   })
@@ -182,7 +207,7 @@ export function Planet({ def }: PlanetProps) {
               emissiveIntensity={
                 isFocused
                   ? 0
-                  : hovered && !isOtherFocused
+                  : showHover && !isOtherFocused
                     ? 0.07
                     : 0.04
               }
@@ -214,7 +239,7 @@ export function Planet({ def }: PlanetProps) {
         ))}
       </group>
 
-      {(hovered || isFocused) && (
+      {(showHover || isFocused) && (
         <Html
           position={[0, def.radius + 0.6, 0]}
           center

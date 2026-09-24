@@ -6,9 +6,10 @@ import type { MoonDef } from '../../data/planets'
 import { enhanceTextureQuality } from '../../components/textureQuality'
 import { useSolarStore } from '../../store/useSolarStore'
 import { useTimeStore } from '../../store/useTimeStore'
+import { uniformAngle } from '../../simulation/ephemeris'
 import {
   MAX_MOON_RAD_PER_SEC,
-  visualAngularStep,
+  followTrueAngle,
 } from '../../simulation/visualRate'
 
 interface MoonProps {
@@ -55,7 +56,9 @@ export function Moon({ def }: MoonProps) {
   const maxAnisotropy = gl.capabilities.getMaxAnisotropy()
   const orbitRef = useRef<THREE.Group>(null)
   const meshRef = useRef<THREE.Mesh>(null)
-  const thetaRef = useRef(def.orbitInitialAngle)
+  const thetaRef = useRef(def.orbitAngleAtJ2000)
+  /** Clock jump last applied; -1 snaps the orbit on the first frame. */
+  const dateVersionRef = useRef(-1)
   const worldPosRef = useRef(new THREE.Vector3())
 
   const [hovered, setHovered] = useState(false)
@@ -68,27 +71,42 @@ export function Moon({ def }: MoonProps) {
   const setHoveredId = useSolarStore((s) => s.setHovered)
 
   const canInteract = view === 'solar' && mode !== 'warping'
+  // See Planet: a stale hover must not survive into a warp.
+  const showHover = hovered && canInteract
 
   useEffect(() => {
     registerBodyPosition(def.id, worldPosRef.current)
   }, [def.id, registerBodyPosition])
 
   useEffect(() => {
-    if (!hovered) return
+    if (!showHover) return
     document.body.style.cursor = 'pointer'
     return () => {
       document.body.style.cursor = 'auto'
     }
-  }, [hovered])
+  }, [showHover])
 
   useFrame((_, delta) => {
-    const { deltaDays } = useTimeStore.getState().clock
-    thetaRef.current += visualAngularStep(
+    const { clock, dateVersion } = useTimeStore.getState()
+    const trueTheta = uniformAngle(
+      def.orbitAngleAtJ2000,
       def.orbitPeriodDays,
-      deltaDays,
-      delta,
-      MAX_MOON_RAD_PER_SEC,
+      clock.julianDay,
     )
+    if (dateVersionRef.current !== dateVersion) {
+      // Date jump (or first frame): be where the date says, at once.
+      dateVersionRef.current = dateVersion
+      thetaRef.current = trueTheta
+    } else {
+      thetaRef.current = followTrueAngle(
+        thetaRef.current,
+        trueTheta,
+        def.orbitPeriodDays,
+        clock.deltaDays,
+        delta,
+        MAX_MOON_RAD_PER_SEC,
+      )
+    }
     if (orbitRef.current) {
       // Prograde = counter-clockwise seen from above, like the planets.
       const x = Math.cos(thetaRef.current) * def.orbitRadius
@@ -97,7 +115,7 @@ export function Moon({ def }: MoonProps) {
       orbitRef.current.getWorldPosition(worldPosRef.current)
     }
     if (meshRef.current) {
-      const target = hovered ? 1.25 : 1
+      const target = showHover ? 1.25 : 1
       const current = meshRef.current.scale.x
       const next = current + (target - current) * Math.min(1, delta * 8)
       meshRef.current.scale.setScalar(next)
@@ -126,7 +144,7 @@ export function Moon({ def }: MoonProps) {
 
   const inclination = ((def.inclinationDeg ?? 0) * Math.PI) / 180
   // Small bodies are hard to see on the night side: lift them a little.
-  const emissiveIntensity = hovered ? 0.3 : isFocused ? 0.22 : 0.16
+  const emissiveIntensity = showHover ? 0.3 : isFocused ? 0.22 : 0.16
 
   return (
     <group rotation={[inclination, 0, 0]}>
@@ -157,7 +175,7 @@ export function Moon({ def }: MoonProps) {
           )}
         </mesh>
 
-        {(hovered || isFocused) && (
+        {(showHover || isFocused) && (
           <Html
             position={[0, def.radius + 0.12, 0]}
             center

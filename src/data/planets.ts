@@ -81,8 +81,12 @@ export interface MoonDef {
   orbitRadius: number
   /** Real sidereal period in days; negative = retrograde. */
   orbitPeriodDays: number
-  /** Initial phase, in radians (moon phases are not ephemeris-driven). */
-  orbitInitialAngle: number
+  /**
+   * Angle along the orbit at J2000, in radians, measured like the planets'
+   * longitude. Real for the Moon (its phases match the date); an arbitrary
+   * but fixed phase for the rest, so a given date always looks the same.
+   */
+  orbitAngleAtJ2000: number
   /** Inclination relative to the parent's equator (degrees). */
   inclinationDeg?: number
   /** Override the camera's focus distance. Defaults to a function of radius. */
@@ -112,6 +116,12 @@ export interface PlanetDef {
   axialTiltDeg: number
   /** Real sidereal rotation period in days. */
   rotationPeriodDays: number
+  /**
+   * Heading of the prime meridian (texture centre) at J2000, in degrees,
+   * measured like the orbital longitude. Only set for Earth, so its day
+   * side matches UTC; other planets start at 0.
+   */
+  spinAtJ2000Deg?: number
   /**
    * Override the camera's focus distance. Defaults to a function of radius.
    */
@@ -186,7 +196,10 @@ export const PLANETS: PlanetDef[] = [
     orbitRadius: 16,
     elements: { L0: 100.46457166, Lrate: 35999.37244981, varpi: 102.93768193, e: 0.01671123 },
     axialTiltDeg: 23.5,
-    rotationPeriodDays: 0.99727,
+    rotationPeriodDays: 0.99726968,
+    // J2000 is 12:00 UT, when Greenwich faces the Sun: Earth's longitude
+    // then (100.38°) plus half a turn.
+    spinAtJ2000Deg: 280.38,
     moons: [
       {
         id: 'moon',
@@ -195,8 +208,9 @@ export const PLANETS: PlanetDef[] = [
         textureUrl: `${TEX}/moonmap1k.jpg`,
         radius: 0.24,
         orbitRadius: 1.7,
-        orbitPeriodDays: 27.32,
-        orbitInitialAngle: 0,
+        // Mean longitude and its rate (Meeus): the phase is real.
+        orbitPeriodDays: 27.321582,
+        orbitAngleAtJ2000: (218.3165 * Math.PI) / 180,
         inclinationDeg: 5.1,
         facts: {
           diameter: '3 474 km',
@@ -240,7 +254,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.09,
         orbitRadius: 1.05,
         orbitPeriodDays: 0.319,
-        orbitInitialAngle: 0,
+        orbitAngleAtJ2000: 0,
         facts: {
           diameter: '22 km',
           orbitPeriod: '7 h 39 min',
@@ -256,7 +270,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.07,
         orbitRadius: 1.45,
         orbitPeriodDays: 1.263,
-        orbitInitialAngle: Math.PI,
+        orbitAngleAtJ2000: Math.PI,
         facts: {
           diameter: '12 km',
           orbitPeriod: '30 h 18 min',
@@ -299,7 +313,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.16,
         orbitRadius: 3.2,
         orbitPeriodDays: 1.769,
-        orbitInitialAngle: 0,
+        orbitAngleAtJ2000: 0,
         facts: {
           diameter: '3 643 km',
           orbitPeriod: '1.77 días',
@@ -317,7 +331,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.15,
         orbitRadius: 3.9,
         orbitPeriodDays: 3.551,
-        orbitInitialAngle: Math.PI * 0.5,
+        orbitAngleAtJ2000: Math.PI * 0.5,
         facts: {
           diameter: '3 122 km',
           orbitPeriod: '3.55 días',
@@ -334,7 +348,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.22,
         orbitRadius: 4.7,
         orbitPeriodDays: 7.155,
-        orbitInitialAngle: Math.PI,
+        orbitAngleAtJ2000: Math.PI,
         facts: {
           diameter: '5 268 km',
           orbitPeriod: '7.15 días',
@@ -352,7 +366,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.2,
         orbitRadius: 5.6,
         orbitPeriodDays: 16.69,
-        orbitInitialAngle: Math.PI * 1.5,
+        orbitAngleAtJ2000: Math.PI * 1.5,
         facts: {
           diameter: '4 821 km',
           orbitPeriod: '16.7 días',
@@ -403,7 +417,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.22,
         orbitRadius: 5.4,
         orbitPeriodDays: 15.95,
-        orbitInitialAngle: 0,
+        orbitAngleAtJ2000: 0,
         facts: {
           diameter: '5 150 km',
           orbitPeriod: '15.9 días',
@@ -421,7 +435,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.09,
         orbitRadius: 4.1,
         orbitPeriodDays: 1.37,
-        orbitInitialAngle: Math.PI * 0.6,
+        orbitAngleAtJ2000: Math.PI * 0.6,
         facts: {
           diameter: '504 km',
           orbitPeriod: '1.37 días',
@@ -463,7 +477,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.1,
         orbitRadius: 2.8,
         orbitPeriodDays: 8.706,
-        orbitInitialAngle: 0,
+        orbitAngleAtJ2000: 0,
         facts: {
           diameter: '1 578 km',
           orbitPeriod: '8.71 días',
@@ -524,7 +538,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.12,
         orbitRadius: 3,
         orbitPeriodDays: -5.877,
-        orbitInitialAngle: Math.PI * 0.3,
+        orbitAngleAtJ2000: Math.PI * 0.3,
         facts: {
           diameter: '2 707 km',
           orbitPeriod: '5.88 días',

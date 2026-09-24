@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { julianDayToDate } from '../simulation/ephemeris'
+import {
+  EPHEMERIS_MAX_JD,
+  EPHEMERIS_MIN_JD,
+  julianDayToDate,
+} from '../simulation/ephemeris'
 import { useSolarStore } from '../store/useSolarStore'
 import { TIME_SPEEDS, useTimeStore } from '../store/useTimeStore'
 import { useTourStore } from '../store/useTourStore'
 
 const DATE_POLL_MS = 250
-/** Validity range of the mean orbital elements. */
-const MIN_DATE = '1800-01-01'
-const MAX_DATE = '2050-12-31'
-
 const toInputValue = (d: Date) => d.toISOString().slice(0, 10)
+
+/** Validity range of the mean orbital elements. */
+const MIN_DATE = toInputValue(julianDayToDate(EPHEMERIS_MIN_JD))
+const MAX_DATE = toInputValue(julianDayToDate(EPHEMERIS_MAX_JD))
 
 const isTypingTarget = (target: EventTarget | null) => {
   const el = target as HTMLElement | null
@@ -139,6 +143,11 @@ export function TimeControls() {
                   className="w-[7.5rem] bg-transparent font-display text-sm font-semibold tabular-nums text-white outline-none [color-scheme:dark] focus-visible:ring-2 focus-visible:ring-cosmos-accent/60 [&::-webkit-calendar-picker-indicator]:hidden"
                 />
               </label>
+              {paused && dateValue === MAX_DATE && (
+                <span className="text-[10px] uppercase tracking-[0.2em] text-cosmos-glow/80">
+                  Fin de las efemérides
+                </span>
+              )}
               <button
                 type="button"
                 onClick={resetToNow}

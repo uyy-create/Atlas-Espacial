@@ -1,5 +1,8 @@
 import { create } from 'zustand'
-import { dateToJulianDay } from '../simulation/ephemeris'
+import {
+  clampToEphemerisRange,
+  dateToJulianDay,
+} from '../simulation/ephemeris'
 
 export interface TimeSpeed {
   id: string
@@ -45,7 +48,7 @@ interface TimeState {
   setSpeed: (id: string) => void
   /** Jump the simulation to the current real date. */
   resetToNow: () => void
-  /** Jump the simulation to a given date. */
+  /** Jump the simulation to a given date (clamped to the ephemeris range). */
   setDate: (date: Date) => void
   /** Advance the clock by one rendered frame of `deltaSec` seconds. */
   advance: (deltaSec: number) => void
@@ -58,7 +61,10 @@ export const getSpeedById = (id: string): TimeSpeed =>
 export const useTimeStore = create<TimeState>((set, get) => ({
   paused: false,
   speedId: DEFAULT_SPEED_ID,
-  clock: { julianDay: dateToJulianDay(new Date()), deltaDays: 0 },
+  clock: {
+    julianDay: clampToEphemerisRange(dateToJulianDay(new Date())),
+    deltaDays: 0,
+  },
   dateVersion: 0,
 
   togglePaused: () => set((s) => ({ paused: !s.paused })),
@@ -70,7 +76,7 @@ export const useTimeStore = create<TimeState>((set, get) => ({
   },
 
   setDate: (date) => {
-    get().clock.julianDay = dateToJulianDay(date)
+    get().clock.julianDay = clampToEphemerisRange(dateToJulianDay(date))
     set((s) => ({ dateVersion: s.dateVersion + 1 }))
   },
 
@@ -78,8 +84,12 @@ export const useTimeStore = create<TimeState>((set, get) => ({
     const { paused, speedId, clock } = get()
     // Clamp so a background tab doesn't leap centuries on refocus.
     const dt = Math.min(deltaSec, 0.1)
-    const deltaDays = paused ? 0 : dt * getSpeedById(speedId).daysPerSecond
-    clock.julianDay += deltaDays
-    clock.deltaDays = deltaDays
+    const wanted = paused ? 0 : dt * getSpeedById(speedId).daysPerSecond
+    // Past the ephemeris range positions stop being real: stop there.
+    const unclamped = clock.julianDay + wanted
+    const next = clampToEphemerisRange(unclamped)
+    clock.deltaDays = next - clock.julianDay
+    clock.julianDay = next
+    if (next !== unclamped) set({ paused: true })
   },
 }))

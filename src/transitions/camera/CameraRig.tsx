@@ -356,7 +356,7 @@ export function CameraRig() {
     } else if (mode === 'overview') {
       const targetPos = getViewDefaultPosition(view)
       const targetLook = getViewDefaultTarget(view)
-      const k = 1 - Math.exp(-3.5 * (1 / 60))
+      const k = 1 - Math.exp(-3.5 * delta)
       camera.position.lerp(targetPos, k)
       lookAtRef.current.lerp(targetLook, k)
       camera.lookAt(lookAtRef.current)
