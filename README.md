@@ -55,6 +55,13 @@ La URL refleja el estado y se puede compartir:
 | -------------- | ------------------------------------ |
 | `npm run lint` | ESLint (incluye reglas de React 19)  |
 | `npx tsc -b`   | Comprobación de tipos                |
+| `npm test`     | Tests (Vitest); `npm run test:watch` |
+
+Los tests cubren la lógica bajo la escena, no el aspecto: efemérides contra
+fechas conocidas (equinoccios, oposiciones, eclipses), fases de la Luna y
+hora solar de la Tierra, el reloj y sus límites, la máquina de estados de
+navegación, los enlaces directos y la integridad de los datos (ids únicos,
+texturas que existen en `public/`).
 
 ## Estructura
 
