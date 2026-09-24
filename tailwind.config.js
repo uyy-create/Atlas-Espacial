@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
-        body: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['"Space Grotesk Variable"', 'system-ui', 'sans-serif'],
+        body: ['"Inter Variable"', 'system-ui', 'sans-serif'],
       },
       colors: {
         cosmos: {

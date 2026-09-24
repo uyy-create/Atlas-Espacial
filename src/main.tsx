@@ -1,5 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+// Self-hosted variable fonts (bundled by Vite, no third-party requests).
+import '@fontsource-variable/inter'
+import '@fontsource-variable/space-grotesk'
 import './index.css'
 import App from './App.tsx'
 import { readUrlState } from './routing/urlState'
