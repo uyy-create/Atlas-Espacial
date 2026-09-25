@@ -41,6 +41,39 @@ const MOON_FOCUS_HEIGHT = 0.35
  * so the planet visually anchors on the LEFT third of the screen.
  */
 const FOCUS_LOOKAT_SHIFT_RATIO = 0.45
+/**
+ * Where the camera first sits around a focused body, measured from the
+ * direction away from the Sun: on the sunward side but off the Sun line,
+ * so most of the disc is lit and the terminator shows on one edge.
+ * (0 would look from behind the body, straight at its night side.)
+ */
+const SUN_FOCUS_AZIMUTH = 2.3
+
+/**
+ * SUN_FOCUS_AZIMUTH expressed in the body's own orbit frame (`outward`,
+ * `right`): planets orbit the Sun, so it's the same angle; moons orbit
+ * their planet, so the frame is turned by wherever the moon is.
+ */
+const sunRelativeAzimuth = (
+  sunAzimuth: number,
+  position: THREE.Vector3,
+  outward: THREE.Vector3,
+  right: THREE.Vector3,
+): number => {
+  const len = Math.hypot(position.x, position.z)
+  if (len < 1e-6) return sunAzimuth
+  const sx = position.x / len
+  const sz = position.z / len
+  const c = Math.cos(sunAzimuth)
+  const s = Math.sin(sunAzimuth)
+  // Camera direction around the body, in the Sun's frame (right = (sz, -sx)).
+  const dx = sx * c + sz * s
+  const dz = sz * c - sx * s
+  return Math.atan2(
+    dx * right.x + dz * right.z,
+    dx * outward.x + dz * outward.z,
+  )
+}
 
 const FOCUS_DURATION = 1.6
 const RETURN_DURATION = 1.4
@@ -242,19 +275,10 @@ export function CameraRig() {
       const defaultElevation = Math.atan2(focusHeight, focusDistance)
       const defaultDistance = Math.hypot(focusDistance, focusHeight)
 
-      const orbit = orbitRef.current
-      if (orbit) {
-        if (focusedChanged) orbit.reset(defaultElevation)
-        orbit.setEnabled(mode === 'focused')
-        orbit.update(delta)
-      }
-      const azimuth = orbit?.azimuth ?? 0
-      const elevation = orbit?.elevation ?? defaultElevation
-      const distance = defaultDistance * (orbit?.zoom ?? 1)
-
       // Frame of reference co-rotates with the body: azimuth 0 looks at a
       // planet from outside its orbit (Sun behind it), and at a moon from
-      // outside its orbit around the planet (planet behind it).
+      // outside its orbit around the planet (planet behind it). The
+      // default framing is Sun-relative though (see sunRelativeAzimuth).
       const parentPos =
         body.kind === 'moon' ? bodyPositions[body.planet.id] : undefined
       if (parentPos) {
@@ -276,6 +300,35 @@ export function CameraRig() {
         0,
         -tmpOutward.current.x,
       )
+
+      const orbit = orbitRef.current
+      if (orbit) {
+        if (focusedChanged) {
+          const toFrame = (a: number) =>
+            sunRelativeAzimuth(
+              a,
+              planetPos,
+              tmpOutward.current,
+              tmpRight.current,
+            )
+          const sunward = toFrame(SUN_FOCUS_AZIMUTH)
+          // Around a moon, either mirror of the sunward angle frames it
+          // as well: take the one that keeps the camera away from the
+          // planet (larger cos = further out along the moon's orbit).
+          const mirrored = toFrame(-SUN_FOCUS_AZIMUTH)
+          orbit.reset(
+            defaultElevation,
+            body.kind === 'moon' && Math.cos(mirrored) > Math.cos(sunward)
+              ? mirrored
+              : sunward,
+          )
+        }
+        orbit.setEnabled(mode === 'focused')
+        orbit.update(delta)
+      }
+      const azimuth = orbit?.azimuth ?? 0
+      const elevation = orbit?.elevation ?? defaultElevation
+      const distance = defaultDistance * (orbit?.zoom ?? 1)
 
       const horizontal = distance * Math.cos(elevation)
       desiredPos.current

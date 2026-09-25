@@ -11,7 +11,18 @@ import {
 const SUN_RADIUS = 3.6
 /** Surface output is not tone-mapped, so >1 feeds the bloom pass. */
 const SUN_BRIGHTNESS = 1.35
-const LIGHT_BASE_INTENSITY = 2.4
+/**
+ * No distance falloff: orbits aren't to scale either, and with a real
+ * falloff the outer planets would sit in the dark. Every planet gets full
+ * sunlight on its day side.
+ */
+const LIGHT_BASE_INTENSITY = 3.2
+/**
+ * Fill light is kept faint on purpose: night sides must read as night.
+ * Just enough to hint the silhouette of a body against the sky.
+ */
+const AMBIENT_INTENSITY = 0.05
+const HEMISPHERE_INTENSITY = 0.06
 
 const skipRaycast = () => null
 
@@ -85,12 +96,12 @@ export function Sun() {
         position={[0, 0, 0]}
         intensity={LIGHT_BASE_INTENSITY}
         distance={500}
-        decay={1.4}
+        decay={0}
         color="#ffe7b3"
       />
-      <ambientLight intensity={0.35} color="#9fb8ff" />
+      <ambientLight intensity={AMBIENT_INTENSITY} color="#9fb8ff" />
       <hemisphereLight
-        args={['#cfd9ff', '#1a1f33', 0.45]}
+        args={['#cfd9ff', '#1a1f33', HEMISPHERE_INTENSITY]}
         position={[0, 1, 0]}
       />
 

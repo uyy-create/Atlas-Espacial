@@ -19,7 +19,9 @@ interface AtmosphereProps {
  *     only the visible ring remains.
  *
  * Both are lit by the Sun (at the origin), so the halo is fuller on the
- * day side and almost vanishes on the night side.
+ * day side and almost vanishes on the night side. Planets with a
+ * `twilightColor` also redden along the terminator, where sunlight grazes
+ * through the thickest air.
  */
 const ATMOSPHERE_VERT = /* glsl */ `
   varying vec3 vWorldNormal;
@@ -35,6 +37,9 @@ const ATMOSPHERE_VERT = /* glsl */ `
 
 const ATMOSPHERE_FRAG = /* glsl */ `
   uniform vec3 uColor;
+  uniform vec3 uTwilightColor;
+  /** 0 disables the terminator tint. */
+  uniform float uTwilight;
   uniform float uIntensity;
   uniform float uPower;
   /** 1.0 = outer halo (back faces), 0.0 = inner rim (front faces). */
@@ -56,10 +61,15 @@ const ATMOSPHERE_FRAG = /* glsl */ `
       ? pow(clamp(-facing, 0.0, 1.0), uPower)
       : pow(clamp(1.0 - facing, 0.0, 1.0), uPower);
 
-    float daylight = smoothstep(-0.55, 0.45, dot(normal, sunDir));
-    float light = mix(0.12, 1.0, daylight);
+    float sunDot = dot(normal, sunDir);
+    float daylight = smoothstep(-0.35, 0.4, sunDot);
+    float light = mix(0.03, 1.0, daylight);
 
-    vec3 color = uColor * fresnel * uIntensity * light;
+    // Sunset band: peaks just on the day side of the terminator.
+    float twilight = uTwilight * exp(-pow((sunDot - 0.05) / 0.16, 2.0));
+    vec3 tint = mix(uColor, uTwilightColor, clamp(twilight, 0.0, 1.0));
+
+    vec3 color = tint * fresnel * uIntensity * max(light, twilight * 0.8);
     gl_FragColor = vec4(color, 1.0);
 
     #include <tonemapping_fragment>
@@ -71,26 +81,35 @@ const skipRaycast = () => null
 
 export function Atmosphere({ radius, def }: AtmosphereProps) {
   const color = useMemo(() => new THREE.Color(def.color), [def.color])
+  const twilightColor = useMemo(
+    () => new THREE.Color(def.twilightColor ?? def.color),
+    [def.twilightColor, def.color],
+  )
+  const twilight = def.twilightColor ? 1 : 0
   const intensity = def.intensity ?? 1
   const outerScale = def.scale ?? 1.16
 
   const rimUniforms = useMemo(
     () => ({
       uColor: { value: color },
+      uTwilightColor: { value: twilightColor },
+      uTwilight: { value: twilight },
       uIntensity: { value: intensity * 0.9 },
       uPower: { value: 3.2 },
       uOuter: { value: 0 },
     }),
-    [color, intensity],
+    [color, twilightColor, twilight, intensity],
   )
   const haloUniforms = useMemo(
     () => ({
       uColor: { value: color },
+      uTwilightColor: { value: twilightColor },
+      uTwilight: { value: twilight },
       uIntensity: { value: intensity * 1.4 },
       uPower: { value: 5.5 },
       uOuter: { value: 1 },
     }),
-    [color, intensity],
+    [color, twilightColor, twilight, intensity],
   )
 
   return (

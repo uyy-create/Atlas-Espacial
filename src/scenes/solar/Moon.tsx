@@ -33,9 +33,8 @@ function TexturedMoonMaterial({
     enhanceTextureQuality(map, maxAnisotropy, 'color')
   }, [map, maxAnisotropy])
 
-  // The texture doubles as a faint emissive map: moons are mostly seen
-  // from their night side under bluish ambient light, which would wash
-  // Io's yellows into grey.
+  // The texture doubles as a faint emissive map, so a moon's night side
+  // keeps its own colours (Io's yellows) instead of going flat grey.
   return (
     <meshStandardMaterial
       map={map}
@@ -143,8 +142,10 @@ export function Moon({ def }: MoonProps) {
   }
 
   const inclination = ((def.inclinationDeg ?? 0) * Math.PI) / 180
-  // Small bodies are hard to see on the night side: lift them a little.
-  const emissiveIntensity = showHover ? 0.3 : isFocused ? 0.22 : 0.16
+  // Small bodies vanish on the night side from afar: lift them a little.
+  // Once focused the camera frames the lit side, so let the terminator
+  // show instead.
+  const emissiveIntensity = showHover ? 0.3 : isFocused ? 0.05 : 0.16
 
   return (
     <group rotation={[inclination, 0, 0]}>

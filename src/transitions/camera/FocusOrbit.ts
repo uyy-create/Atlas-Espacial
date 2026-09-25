@@ -68,8 +68,8 @@ export class FocusOrbit {
   }
 
   /** Snap back to the default framing (used when the focused planet changes). */
-  reset(defaultElevation: number) {
-    this.azimuth = this.targetAzimuth = 0
+  reset(defaultElevation: number, defaultAzimuth = 0) {
+    this.azimuth = this.targetAzimuth = defaultAzimuth
     this.elevation = this.targetElevation = clamp(
       defaultElevation,
       MIN_ELEVATION,

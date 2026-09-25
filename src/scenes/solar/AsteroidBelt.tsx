@@ -14,8 +14,23 @@ const OUTER_RADIUS = 25.4
 const INNER_AU = 2.1
 const OUTER_AU = 3.3
 const MAX_HEIGHT = 0.45
-const MIN_SIZE = 0.018
-const MAX_SIZE = 0.05
+const MIN_SIZE = 0.02
+const MAX_SIZE = 0.055
+/**
+ * Warmer and brighter than the starfield, so the rocks don't read as more
+ * background stars.
+ */
+const ROCK_COLOR = '#b39a7e'
+/**
+ * Faint dust band under the rocks: gives the belt a body from the
+ * overview, where single rocks shrink to a pixel. It overhangs the rock
+ * radii a little so the edges fade out instead of stopping.
+ */
+const DUST_MARGIN = 1.1
+const DUST_COLOR = '#c7a47c'
+const DUST_OPACITY = 0.05
+/** Period of a mid-belt orbit (~2.7 AU): the dust clumps drift with it. */
+const DUST_PERIOD_DAYS = 365.25 * Math.pow((INNER_AU + OUTER_AU) / 2, 1.5)
 /**
  * Jupiter's (exaggerated) moon orbits cross the belt, so a focused moon can
  * sit right among the rocks. Rocks shrink as the camera approaches (down
@@ -78,7 +93,102 @@ const BELT_FRAG = /* glsl */ `
   }
 `
 
+const DUST_VERT = /* glsl */ `
+  varying vec2 vPos;
+
+  void main() {
+    vPos = position.xy;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+
+const DUST_FRAG = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uOpacity;
+  uniform float uInner;
+  uniform float uOuter;
+  uniform float uRotation;
+
+  varying vec2 vPos;
+
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+
+  float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+      mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+      u.y
+    );
+  }
+
+  void main() {
+    float t = (length(vPos) - uInner) / (uOuter - uInner);
+    // Densest mid-belt, like the rocks (see createBelt).
+    float profile = smoothstep(0.0, 0.5, t) * (1.0 - smoothstep(0.5, 1.0, t));
+
+    // Clumps turn with the belt.
+    float c = cos(uRotation);
+    float s = sin(uRotation);
+    vec2 p = mat2(c, -s, s, c) * vPos;
+    float n = 0.6 * noise(p * 0.45) + 0.4 * noise(p * 1.3 + 7.0);
+    float clump = mix(0.35, 1.25, n);
+
+    gl_FragColor = vec4(uColor * profile * clump * uOpacity, 1.0);
+
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }
+`
+
 const skipRaycast = () => null
+
+function DustBand() {
+  const materialRef = useRef<THREE.ShaderMaterial>(null)
+  const inner = INNER_RADIUS - DUST_MARGIN
+  const outer = OUTER_RADIUS + DUST_MARGIN
+
+  const uniforms = useMemo(
+    () => ({
+      uColor: { value: new THREE.Color(DUST_COLOR) },
+      uOpacity: { value: DUST_OPACITY },
+      uInner: { value: inner },
+      uOuter: { value: outer },
+      uRotation: { value: 0 },
+    }),
+    [inner, outer],
+  )
+
+  useFrame(() => {
+    const mat = materialRef.current
+    if (!mat) return
+    const days = useTimeStore.getState().clock.julianDay - J2000
+    mat.uniforms.uRotation.value =
+      ((days / DUST_PERIOD_DAYS) % 1) * Math.PI * 2
+  })
+
+  // The ring is built in XY: lay it on the orbital plane. Local +y ends
+  // up at world -z, so its angles match the planets' longitudes.
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={skipRaycast}>
+      <ringGeometry args={[inner, outer, 256, 1]} />
+      <shaderMaterial
+        ref={materialRef}
+        uniforms={uniforms}
+        vertexShader={DUST_VERT}
+        fragmentShader={DUST_FRAG}
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  )
+}
 
 /** One shared, slightly lumpy rock; instance rotations do the rest. */
 function createRockGeometry(rand: () => number): THREE.BufferGeometry {
@@ -147,7 +257,7 @@ export function AsteroidBelt() {
   const uniforms = useMemo(
     () => ({
       uDaysSinceJ2000: { value: 0 },
-      uColor: { value: new THREE.Color('#8d7f70') },
+      uColor: { value: new THREE.Color(ROCK_COLOR) },
       uNearCull: { value: NEAR_CULL_DISTANCE },
       uNearScaleMin: { value: NEAR_SCALE_MIN },
       uNearScaleDistance: { value: NEAR_SCALE_DISTANCE },
@@ -172,19 +282,22 @@ export function AsteroidBelt() {
   })
 
   return (
-    <instancedMesh
-      ref={meshRef}
-      args={[undefined, undefined, COUNT]}
-      geometry={belt.geometry}
-      frustumCulled={false}
-      raycast={skipRaycast}
-    >
-      <shaderMaterial
-        ref={materialRef}
-        uniforms={uniforms}
-        vertexShader={BELT_VERT}
-        fragmentShader={BELT_FRAG}
-      />
-    </instancedMesh>
+    <>
+      <DustBand />
+      <instancedMesh
+        ref={meshRef}
+        args={[undefined, undefined, COUNT]}
+        geometry={belt.geometry}
+        frustumCulled={false}
+        raycast={skipRaycast}
+      >
+        <shaderMaterial
+          ref={materialRef}
+          uniforms={uniforms}
+          vertexShader={BELT_VERT}
+          fragmentShader={BELT_FRAG}
+        />
+      </instancedMesh>
+    </>
   )
 }

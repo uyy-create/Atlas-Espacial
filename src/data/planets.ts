@@ -55,6 +55,8 @@ export interface AtmosphereDef {
   intensity?: number
   /** Outer halo radius relative to the planet. Default 1.16. */
   scale?: number
+  /** Sunset tint along the day/night terminator. Omit for none. */
+  twilightColor?: string
 }
 
 export interface MoonFacts {
@@ -221,7 +223,12 @@ export const PLANETS: PlanetDef[] = [
           'El único satélite natural de la Tierra y el quinto mayor del sistema solar. Rota sincronizada con su órbita, así que siempre nos muestra la misma cara. Se formó hace 4 500 millones de años, tras el impacto de un protoplaneta contra la Tierra.',
       },
     ],
-    atmosphere: { color: '#5aa9ff', intensity: 1.25, scale: 1.18 },
+    atmosphere: {
+      color: '#5aa9ff',
+      intensity: 1.25,
+      scale: 1.18,
+      twilightColor: '#ff8a4a',
+    },
     facts: {
       diameter: '12 742 km',
       gravity: '9.807 m/s²',
