@@ -89,8 +89,16 @@ export interface MoonDef {
    * but fixed phase for the rest, so a given date always looks the same.
    */
   orbitAngleAtJ2000: number
-  /** Inclination relative to the parent's equator (degrees). */
+  /**
+   * Inclination (degrees) relative to the parent's equator, or to the
+   * ecliptic for `orbitsEcliptic` moons.
+   */
   inclinationDeg?: number
+  /**
+   * Orbits near the ecliptic rather than the parent's equator (Earth's
+   * Moon). Its angle is then a true longitude, which its phases rely on.
+   */
+  orbitsEcliptic?: boolean
   /** Override the camera's focus distance. Defaults to a function of radius. */
   focusDistance?: number
   facts: MoonFacts
@@ -116,6 +124,12 @@ export interface PlanetDef {
   /** Mean orbital elements: the angle along the orbit is real for any date. */
   elements: OrbitalElements
   axialTiltDeg: number
+  /**
+   * Orbital longitude (degrees) the spin axis leans towards, from the IAU
+   * pole of each planet. This is what sets the seasons: Earth leans
+   * towards 90°, so its north tips sunward at the June solstice.
+   */
+  poleLongitudeDeg: number
   /** Real sidereal rotation period in days. */
   rotationPeriodDays: number
   /**
@@ -150,6 +164,7 @@ export const PLANETS: PlanetDef[] = [
     orbitRadius: 9,
     elements: { L0: 252.2503235, Lrate: 149472.67411175, varpi: 77.45779628, e: 0.20563593 },
     axialTiltDeg: 0.03,
+    poleLongitudeDeg: 318.2,
     rotationPeriodDays: 58.646,
     facts: {
       diameter: '4 879 km',
@@ -172,6 +187,7 @@ export const PLANETS: PlanetDef[] = [
     orbitRadius: 12.5,
     elements: { L0: 181.9790995, Lrate: 58517.81538729, varpi: 131.60246718, e: 0.00677672 },
     axialTiltDeg: 177.4,
+    poleLongitudeDeg: 210.2,
     rotationPeriodDays: 243.02,
     atmosphere: { color: '#ffe3a3', intensity: 1.1, scale: 1.2 },
     facts: {
@@ -198,6 +214,7 @@ export const PLANETS: PlanetDef[] = [
     orbitRadius: 16,
     elements: { L0: 100.46457166, Lrate: 35999.37244981, varpi: 102.93768193, e: 0.01671123 },
     axialTiltDeg: 23.5,
+    poleLongitudeDeg: 90,
     rotationPeriodDays: 0.99726968,
     // J2000 is 12:00 UT, when Greenwich faces the Sun: Earth's longitude
     // then (100.38°) plus half a turn.
@@ -213,6 +230,7 @@ export const PLANETS: PlanetDef[] = [
         // Mean longitude and its rate (Meeus): the phase is real.
         orbitPeriodDays: 27.321582,
         orbitAngleAtJ2000: (218.3165 * Math.PI) / 180,
+        orbitsEcliptic: true,
         inclinationDeg: 5.1,
         facts: {
           diameter: '3 474 km',
@@ -250,6 +268,7 @@ export const PLANETS: PlanetDef[] = [
     orbitRadius: 20,
     elements: { L0: -4.55343205, Lrate: 19140.30268499, varpi: -23.94362959, e: 0.0933941 },
     axialTiltDeg: 25.2,
+    poleLongitudeDeg: 352.9,
     rotationPeriodDays: 1.02596,
     moons: [
       {
@@ -309,6 +328,7 @@ export const PLANETS: PlanetDef[] = [
     orbitRadius: 27,
     elements: { L0: 34.39644051, Lrate: 3034.74612775, varpi: 14.72847983, e: 0.04838624 },
     axialTiltDeg: 3.1,
+    poleLongitudeDeg: 247.8,
     rotationPeriodDays: 0.41354,
     focusDistance: 8.5,
     moons: [
@@ -405,6 +425,7 @@ export const PLANETS: PlanetDef[] = [
     orbitRadius: 36,
     elements: { L0: 49.95424423, Lrate: 1222.49362201, varpi: 92.59887831, e: 0.05386179 },
     axialTiltDeg: 26.7,
+    poleLongitudeDeg: 79.5,
     rotationPeriodDays: 0.44401,
     focusDistance: 9,
     rings: {
@@ -474,6 +495,7 @@ export const PLANETS: PlanetDef[] = [
     orbitRadius: 45,
     elements: { L0: 313.23810451, Lrate: 428.48202785, varpi: 170.9542763, e: 0.04725744 },
     axialTiltDeg: 97.8,
+    poleLongitudeDeg: 77.6,
     rotationPeriodDays: 0.71833,
     focusDistance: 6.5,
     moons: [
@@ -534,6 +556,7 @@ export const PLANETS: PlanetDef[] = [
     orbitRadius: 53,
     elements: { L0: -55.12002969, Lrate: 218.45945325, varpi: 44.96476227, e: 0.00859048 },
     axialTiltDeg: 28.3,
+    poleLongitudeDeg: 319.2,
     rotationPeriodDays: 0.67125,
     focusDistance: 6.5,
     moons: [

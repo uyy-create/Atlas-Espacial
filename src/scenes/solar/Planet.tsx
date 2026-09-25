@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Html, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
@@ -13,6 +13,7 @@ import {
   MAX_SPIN_RAD_PER_SEC,
   followTrueAngle,
 } from '../../simulation/visualRate'
+import { HeadingToSpin, tiltFrameEuler } from '../../simulation/orientation'
 import { enhanceTextureQuality } from '../../components/textureQuality'
 import { PlanetRings } from './PlanetRings'
 import { Moon } from './Moon'
@@ -79,6 +80,19 @@ export function Planet({ def }: PlanetProps) {
   /** Clock jump last applied; -1 snaps the spin on the first frame. */
   const dateVersionRef = useRef(-1)
   const worldPosRef = useRef(new THREE.Vector3())
+  const tiltRotation = useMemo(
+    () => tiltFrameEuler(def.axialTiltDeg, def.poleLongitudeDeg),
+    [def.axialTiltDeg, def.poleLongitudeDeg],
+  )
+  // Only a real prime meridian (Earth) needs mapping into the tilt frame;
+  // for the rest the spin phase is arbitrary anyway.
+  const headingToSpin = useMemo(
+    () =>
+      def.spinAtJ2000Deg === undefined
+        ? null
+        : new HeadingToSpin(def.axialTiltDeg, def.poleLongitudeDeg),
+    [def.spinAtJ2000Deg, def.axialTiltDeg, def.poleLongitudeDeg],
+  )
 
   const [hovered, setHovered] = useState(false)
 
@@ -130,11 +144,12 @@ export function Planet({ def }: PlanetProps) {
     }
     if (spinRef.current) {
       const current = spinRef.current.rotation.y
-      const trueSpin = uniformAngle(
+      const heading = uniformAngle(
         ((def.spinAtJ2000Deg ?? 0) * Math.PI) / 180,
         def.rotationPeriodDays,
         julianDay,
       )
+      const trueSpin = headingToSpin ? headingToSpin.angle(heading) : heading
       let spin: number
       if (dateVersionRef.current !== dateVersion) {
         // Date jump (or first frame): be where the date says, at once.
@@ -187,10 +202,7 @@ export function Planet({ def }: PlanetProps) {
 
   return (
     <group ref={orbitRef}>
-      <group
-        ref={tiltRef}
-        rotation={[0, 0, (def.axialTiltDeg * Math.PI) / 180]}
-      >
+      <group ref={tiltRef} rotation={tiltRotation}>
         <group ref={spinRef}>
           <mesh
             raycast={canInteract ? undefined : skipRaycast}
@@ -234,10 +246,14 @@ export function Planet({ def }: PlanetProps) {
 
         {def.rings && <PlanetRings rings={def.rings} />}
 
-        {def.moons?.map((moon) => (
-          <Moon key={moon.id} def={moon} />
-        ))}
+        {def.moons
+          ?.filter((moon) => !moon.orbitsEcliptic)
+          .map((moon) => <Moon key={moon.id} def={moon} />)}
       </group>
+
+      {def.moons
+        ?.filter((moon) => moon.orbitsEcliptic)
+        .map((moon) => <Moon key={moon.id} def={moon} />)}
 
       {(showHover || isFocused) && (
         <Html

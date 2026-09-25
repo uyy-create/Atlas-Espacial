@@ -35,7 +35,9 @@ Abre la URL que muestra Vite (normalmente `http://localhost:5173`).
 Las posiciones de los planetas son reales para la fecha simulada
 (elementos orbitales medios del JPL); los radios de las órbitas y los
 tamaños no están a escala. La fase de la Luna y la hora solar de la Tierra
-también siguen la fecha; el resto de lunas tienen una fase fija por fecha
+también siguen la fecha, y los ejes de rotación apuntan hacia su polo real
+(IAU), así que las estaciones son reales: en junio el norte de la Tierra
+mira al Sol, Saturno pone sus anillos de canto en 2025 y Urano va tumbado; el resto de lunas tienen una fase fija por fecha
 (no real). A velocidades altas los giros y las lunas rápidas se limitan
 visualmente, y al pausar vuelven a su posición real. El reloj se detiene en
 los bordes del rango de validez de las efemérides (1800–2050).
